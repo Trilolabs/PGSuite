@@ -1,14 +1,21 @@
 'use client';
 
-import AddBookingDrawer from '@/components/AddBookingDrawer';
+import { useState, useEffect } from 'react';
+import {
+    Box, Flex, Text, Card, CardBody, Table, Thead, Tbody, Tr, Th, Td,
+    Badge, Button, HStack, Select, Input, InputGroup, InputLeftElement, Icon,
+    IconButton, Menu, MenuButton, MenuList, MenuItem, Avatar,
+    useToast,
+} from '@chakra-ui/react';
+import { MdSearch, MdMoreVert, MdAdd, MdArrowDropDown } from 'react-icons/md';
+import DashboardLayout from '@/components/DashboardLayout';
 import { useRouter } from 'next/navigation';
 
-// ... (existing imports)
+const statusColor = { Confirmed: 'green', Pending: 'yellow', Cancelled: 'red', Shifted: 'blue' };
 
 export default function BookingsPage() {
     const [bookingsData, setBookingsData] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
     const toast = useToast();
     const router = useRouter();
 
@@ -30,7 +37,7 @@ export default function BookingsPage() {
     }, []);
 
     const handleAddBooking = () => {
-        setIsAddDrawerOpen(true);
+        router.push('/people/add-tenant?mode=booking');
     };
 
     const handleMenuAction = async (action, booking) => {
@@ -54,10 +61,6 @@ export default function BookingsPage() {
             isClosable: true,
         });
     };
-
-    // ... (statCards logic remains mostly same, ensure field names match schema)
-    // Schema uses: name, phone, room (string), bookingDate, moveInDate, amount, advancePaid, status
-    // The previous mock data likely used different keys. Adjusting map below.
 
     const statCards = [
         { label: 'Total Bookings', value: bookingsData.length, color: 'blue.500' },
@@ -167,12 +170,6 @@ export default function BookingsPage() {
                     </Table>
                 </Box>
             </Card>
-
-            <AddBookingDrawer
-                isOpen={isAddDrawerOpen}
-                onClose={() => setIsAddDrawerOpen(false)}
-                onBookingAdded={fetchBookings}
-            />
         </DashboardLayout>
     );
 }

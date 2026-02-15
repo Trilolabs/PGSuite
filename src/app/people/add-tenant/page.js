@@ -144,55 +144,84 @@ export default function AddTenantPage() {
     };
 
     const handleSubmit = async () => {
-        // Detailed Validation
-        // Detailed Validation - SKIPPED as per user request
-        const errors = [];
-        // if (!formData.name) errors.push("Name");
-        // if (!formData.phone) errors.push("Phone");
-        // if (!formData.roomId) errors.push("Room");
-
-        /*
-        if (errors.length > 0) {
-            toast({
-                title: 'Missing Fields',
-                description: `Required: ${errors.join(', ')}`,
-                status: 'error',
-                duration: 5000
-            });
-            return;
-        }
-        */
-
         setLoading(true);
         try {
-            // Calculate Total Opening Balance
-            const totalRent = parseFloat(formData.rent) || 0;
-            const totalDeposit = parseFloat(formData.deposit) || 0;
-            const totalOtherDues = formData.otherDues.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
-            const finalOpeningBalance = totalRent + totalDeposit + totalOtherDues;
+            // Check for Future Move-in Date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            const payload = {
-                ...formData,
-                openingBalance: finalOpeningBalance,
-                // Ensure numeric fields are numbers if needed, though state is string/number mixed
-                initialMeterReading: parseFloat(formData.initialMeterReading) || 0,
-                electricityRate: parseFloat(formData.electricityRate) || 0
-            };
-
-            const res = await fetch('/api/tenants', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || 'Failed to add tenant');
+            // Handle moveIn Date safely
+            let moveInDate = today;
+            if (formData.moveIn) {
+                moveInDate = new Date(formData.moveIn);
+                moveInDate.setHours(0, 0, 0, 0);
             }
 
-            toast({ title: 'Tenant Added', status: 'success', duration: 3000 });
-            router.push('/people/tenants');
+            // Determine if we should save as Booking
+            const searchParamsMode = searchParams.get('mode');
+            const isBooking = searchParamsMode === 'booking' || moveInDate > today;
+
+            if (isBooking) {
+                // Booking Creation Mode
+                const roomObj = rooms.find(r => r.id === formData.roomId);
+                const payload = {
+                    name: formData.name,
+                    phone: formData.phone,
+                    room: roomObj ? roomObj.number : '',
+                    bookingDate: new Date().toISOString().split('T')[0],
+                    moveInDate: formData.moveIn,
+                    amount: parseFloat(formData.rent) || 0,
+                    advancePaid: parseFloat(formData.deposit) || 0, // Using Deposit field as Token/Advance
+                    status: 'Confirmed',
+                    propertyId: 'PROP001',
+                };
+
+                const res = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!res.ok) throw new Error('Failed to create booking');
+
+                const toastMessage = searchParamsMode === 'booking'
+                    ? 'Booking Created Successfully'
+                    : 'Future Move-in Date detected: Saved as Booking';
+
+                toast({ title: toastMessage, status: 'success', duration: 5000 });
+                router.push('/people/bookings');
+
+            } else {
+                // Tenant Creation Mode (Standard)
+                // Calculate Total Opening Balance
+                const totalRent = parseFloat(formData.rent) || 0;
+                const totalDeposit = parseFloat(formData.deposit) || 0;
+                const totalOtherDues = formData.otherDues.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+                const finalOpeningBalance = totalRent + totalDeposit + totalOtherDues;
+
+                const payload = {
+                    ...formData,
+                    openingBalance: finalOpeningBalance,
+                    initialMeterReading: parseFloat(formData.initialMeterReading) || 0,
+                    electricityRate: parseFloat(formData.electricityRate) || 0
+                };
+
+                const res = await fetch('/api/tenants', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || 'Failed to add tenant');
+                }
+
+                toast({ title: 'Tenant Added', status: 'success', duration: 3000 });
+                router.push('/people/tenants');
+            }
         } catch (error) {
+            console.error(error);
             toast({ title: 'Error', description: error.message, status: 'error', duration: 4000 });
         } finally {
             setLoading(false);

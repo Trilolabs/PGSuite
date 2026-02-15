@@ -85,18 +85,16 @@ export default function TenantsPage() {
     };
 
     const handleRowClick = (tenant) => {
-        toast({
-            title: "View Profile",
-            description: `Navigating to profile of ${tenant.name}`,
-            status: "info",
-            duration: 2000,
-            isClosable: true,
-        });
-        // router.push(`/people/tenants/${tenant.id}`); 
+        router.push(`/people/tenants/${tenant.id}`);
     };
 
     const handleMenuAction = (action, tenant, e) => {
         e.stopPropagation();
+
+        if (action === 'View Profile') {
+            router.push(`/people/tenants/${tenant.id}`);
+            return;
+        }
 
         if (action === 'Move Out') {
             setSelectedTenant(tenant);

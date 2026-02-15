@@ -81,6 +81,8 @@ model Tenant {
   agreementPeriod  Int      @default(11) // Added Gap Fill
   moveOut          String?  // Added Gap Fill
   idProof          String   @default("")
+  idProofType      String   @default("") // Added
+  idProofNumber    String   @default("") // Added
   emergencyContact String   @default("")
   floor            String   @default("")
   bed              String   @default("")
@@ -99,6 +101,8 @@ model Tenant {
   joiningFee       Float    @default(0)
   rentalFrequency  String   @default("Monthly")
   rentStartDate    String   @default("1")
+  checkInTime      String   @default("")     // Added for Deep Parity
+  checkOutTime     String   @default("")     // Added for Deep Parity
   electricityType  String   @default("Fixed Amount")
   electricityRate  Float    @default(0)
   openingBalance   Float    @default(0)
@@ -124,7 +128,8 @@ model Tenant {
   ifscCode         String   @default("")
   upiId            String   @default("") // Added
   meterNumber      String   @default("") // Added
-  initialMeterReading Float @default(0)  // Added
+  initialMeterReading Float @default(0)  
+  lastMeterReading    Float @default(0)  // Added
   documents        String   @default("[]") // JSON array for ID Proofs etc.
 
   bookedBy         String   @default("")
