@@ -17,6 +17,9 @@ urlpatterns = [
          views.FloorViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
          name='property-floor-detail'),
 
+    path('properties/<uuid:property_pk>/rooms/stats/',
+         views.RoomViewSet.as_view({'get': 'stats'}),
+         name='property-rooms-stats'),
     path('properties/<uuid:property_pk>/rooms/',
          views.RoomViewSet.as_view({'get': 'list', 'post': 'create'}),
          name='property-rooms'),

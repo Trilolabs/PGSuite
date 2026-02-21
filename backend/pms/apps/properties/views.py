@@ -107,6 +107,43 @@ class RoomViewSet(viewsets.ModelViewSet):
             return RoomCreateSerializer
         return RoomListSerializer
 
+    @action(detail=False, methods=['get'])
+    def stats(self, request, property_pk=None):
+        """Aggregate room and bed metrics for the property."""
+        rooms = Room.objects.filter(property_id=property_pk, status='active')
+        
+        total_rooms = rooms.count()
+        total_beds = sum(r.total_beds for r in rooms)
+        occupied_beds = sum(r.occupied_beds for r in rooms)
+        
+        vacant_rooms = sum(1 for r in rooms if r.occupied_beds == 0)
+        semi_vacant_rooms = sum(1 for r in rooms if 0 < r.occupied_beds < r.total_beds)
+        occupied_rooms = sum(1 for r in rooms if r.occupied_beds == r.total_beds)
+        overbooked_rooms = sum(1 for r in rooms if r.occupied_beds > r.total_beds)
+        
+        vacant_beds = max(0, total_beds - occupied_beds)
+        overbooked_beds = sum(max(0, r.occupied_beds - r.total_beds) for r in rooms)
+        
+        # We can simulate bookings and unverified using other models, but base them on 0 for now
+        new_bookings = 0
+        unverified_rooms = 0
+        under_notice = 0
+
+        return Response({
+            'total_rooms': total_rooms,
+            'total_beds': total_beds,
+            'vacant_rooms': vacant_rooms,
+            'semi_vacant_rooms': semi_vacant_rooms,
+            'vacant_beds': vacant_beds,
+            'occupied_rooms': occupied_rooms,
+            'occupied_beds': occupied_beds,
+            'overbooked_rooms': overbooked_rooms,
+            'overbooked_beds': overbooked_beds,
+            'new_bookings': new_bookings,
+            'unverified_rooms': unverified_rooms,
+            'under_notice': under_notice,
+        })
+
 
 class BedViewSet(viewsets.ModelViewSet):
     """Manage beds within a room."""

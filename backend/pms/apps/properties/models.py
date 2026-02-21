@@ -136,8 +136,12 @@ class Room(UUIDModel):
     occupied_beds = models.PositiveIntegerField(default=0)
     rent_per_bed = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     amenities = models.JSONField(default=list, blank=True)
+    tags = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    is_available = models.BooleanField(default=True)
     remarks = models.TextField(blank=True)
+    address = models.TextField(blank=True)
+    linked_bank = models.ForeignKey('BankAccount', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         app_label = 'properties'

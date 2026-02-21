@@ -6,3 +6,6 @@ class PropertiesConfig(AppConfig):
     name = 'pms.apps.properties'
     label = 'properties'
     verbose_name = 'Properties & Rooms'
+
+    def ready(self):
+        import pms.apps.properties.signals

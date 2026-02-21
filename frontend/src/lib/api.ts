@@ -73,9 +73,12 @@ export const propertyApi = {
 // ===================== Rooms =====================
 export const roomApi = {
     list: (propId: string) => api.get(`/properties/${propId}/rooms/`),
+    get: (propId: string, id: string) => api.get(`/properties/${propId}/rooms/${id}/`),
     create: (propId: string, data: any) => api.post(`/properties/${propId}/rooms/`, data),
+    update: (propId: string, id: string, data: any) => api.patch(`/properties/${propId}/rooms/${id}/`, data),
     floors: (propId: string) => api.get(`/properties/${propId}/floors/`),
     createFloor: (propId: string, data: { name: string }) => api.post(`/properties/${propId}/floors/`, data),
+    stats: (propId: string) => api.get(`/properties/${propId}/rooms/stats/`),
 };
 
 // ===================== Tenants =====================
@@ -129,7 +132,7 @@ export const dashboardApi = {
 
 // ===================== Bookings & Leads =====================
 export const bookingApi = {
-    list: (propertyId: string) => api.get(`/properties/${propertyId}/bookings/`),
+    list: (propertyId: string, params?: any) => api.get(`/properties/${propertyId}/bookings/`, { params }),
     create: (propertyId: string, data: any) => api.post(`/properties/${propertyId}/bookings/`, data),
     convert: (propertyId: string, id: string) => api.post(`/properties/${propertyId}/bookings/${id}/convert/`),
 };

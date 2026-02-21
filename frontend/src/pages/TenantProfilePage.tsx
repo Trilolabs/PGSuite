@@ -530,6 +530,7 @@ export default function TenantProfilePage() {
                                 border: '1px solid var(--border-primary)', marginBottom: 20, overflowX: 'auto',
                             }}>
                                 {[
+                                    { label: 'Tenant Ledger', value: 'PDF', filterValue: 'pdf', color: '#1e40af', isPdf: true },
                                     { label: 'Total Dues', value: passbook?.total_dues || 0, filterValue: 'dues', color: '#ef4444' },
                                     { label: 'Total Collection', value: passbook?.total_paid || 0, filterValue: 'collections', color: '#22c55e' },
                                     { label: 'Security Deposit', value: tenant.deposit || 0, filterValue: 'deposit', color: '#6366f1' },
@@ -538,9 +539,11 @@ export default function TenantProfilePage() {
                                 ].map((stat, i) => {
                                     const isActive = passbookFilter === stat.filterValue;
                                     return (
-                                        <div key={i} onClick={() => setPassbookFilter(stat.filterValue as any)} style={{ cursor: 'pointer', padding: '8px 12px', borderRadius: 8, background: isActive ? `${stat.color}15` : 'transparent', border: isActive ? `1px solid ${stat.color}50` : '1px solid transparent', transition: 'all 0.2s' }}>
-                                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: stat.color }}>₹{Number(stat.value).toLocaleString('en-IN')}</div>
-                                            <div style={{ fontSize: '0.75rem', color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', marginTop: 2, fontWeight: isActive ? 600 : 400 }}>{stat.label}</div>
+                                        <div key={i} onClick={() => setPassbookFilter(stat.filterValue as any)} style={{ cursor: 'pointer', padding: '12px 16px', borderRadius: 8, background: isActive ? `${stat.color}15` : 'transparent', border: isActive ? `1px solid ${stat.color}50` : '1px solid transparent', transition: 'all 0.2s', minWidth: 140 }}>
+                                            <div style={{ fontSize: stat.isPdf ? '1.1rem' : '1.2rem', fontWeight: 700, color: stat.color, marginBottom: 4, height: 24, display: 'flex', alignItems: 'center' }}>
+                                                {stat.isPdf ? stat.value : `₹${Number(stat.value).toLocaleString('en-IN')}`}
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: isActive ? 600 : 500 }}>{stat.label}</div>
                                         </div>
                                     )
                                 })}
@@ -608,9 +611,7 @@ export default function TenantProfilePage() {
                                     </div>
                                 )}
 
-                                <div onClick={() => setPassbookFilter('pdf')} style={{ textAlign: 'center', fontSize: '0.85rem', color: passbookFilter === 'pdf' ? '#1e293b' : '#3b82f6', fontWeight: passbookFilter === 'pdf' ? 700 : 500, marginBottom: 20, cursor: 'pointer', display: 'inline-block', padding: '6px 16px', background: passbookFilter === 'pdf' ? '#e2e8f0' : 'transparent', borderRadius: 20 }}>
-                                    All transactions (PDF)
-                                </div>
+
 
                                 {/* Conditional Ledger Display */}
                                 {passbookFilter === 'pdf' ? (

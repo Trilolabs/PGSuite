@@ -1,2 +1,73 @@
-backend/venv
+# Dependencies
 frontend/node_modules
+backend/venv
+backend/.venv
+.pnp
+.pnp.js
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.mypy_cache/
+.ruff_cache/
+*.cover
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.log
+
+# Django
+backend/staticfiles/
+backend/media/
+*.sqlite3
+*.sqlite3-journal
+backend/db.sqlite3
+backend/test_db.sqlite3
+local_settings.py
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend build and tooling
+frontend/dist/
+frontend/build/
+*.tsbuildinfo
+.npm
+.eslintcache
+
+# Optional: uncomment to ignore one-off test scripts
+# backend/test_*.py

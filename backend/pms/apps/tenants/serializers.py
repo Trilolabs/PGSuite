@@ -66,13 +66,6 @@ class TenantCreateSerializer(serializers.ModelSerializer):
                 bed.tenant = tenant
                 bed.status = 'occupied'
                 bed.save(update_fields=['tenant', 'status'])
-                # Update room and property counts
-                room = bed.room
-                room.occupied_beds = room.beds.filter(status='occupied').count()
-                room.save(update_fields=['occupied_beds'])
-                prop = room.property
-                prop.occupied_beds = sum(r.occupied_beds for r in prop.rooms.all())
-                prop.save(update_fields=['occupied_beds'])
             except Bed.DoesNotExist:
                 pass
 

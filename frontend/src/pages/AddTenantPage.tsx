@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import { tenantApi, roomApi } from '../lib/api';
+import { tenantApi, roomApi, duesPackageApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
 
 const STEPS = ['Personal Details', 'Stay Details', 'Rent & Payment', 'KYC & Documents'];
@@ -65,8 +65,25 @@ export default function AddTenantPage() {
 
     useEffect(() => {
         if (selectedPropertyId) {
+            // Fetch Rooms for dropdown
             roomApi.list(selectedPropertyId)
                 .then(res => setRooms(res.data.results || res.data || []))
+                .catch(() => { });
+
+            // Fetch Dues Packages to auto-populate Security Deposit
+            duesPackageApi.list(selectedPropertyId)
+                .then(res => {
+                    const packages = res.data.results || res.data || [];
+                    const depositPkg = packages.find((p: any) => p.name === 'Security Deposit');
+                    if (depositPkg) {
+                        setForm(f => ({
+                            ...f,
+                            deposit: (depositPkg.is_active && depositPkg.type === 'fixed' && Number(depositPkg.default_amount) > 0)
+                                ? String(depositPkg.default_amount)
+                                : ''
+                        }));
+                    }
+                })
                 .catch(() => { });
         }
     }, [selectedPropertyId]);

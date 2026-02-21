@@ -99,25 +99,54 @@ class RoomListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'number', 'floor', 'floor_name', 'type',
             'total_beds', 'occupied_beds', 'rent_per_bed',
-            'amenities', 'status', 'beds',
+            'amenities', 'tags', 'status', 'is_available', 
+            'remarks', 'address', 'linked_bank', 'beds',
         ]
 
 
 class RoomCreateSerializer(serializers.ModelSerializer):
     bed_count = serializers.IntegerField(write_only=True, required=False, default=1)
+    floor_name = serializers.CharField(write_only=True)
+    is_available = serializers.BooleanField(write_only=True, required=False, default=True)
+    remarks = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Room
         fields = [
-            'floor', 'number', 'type', 'rent_per_bed',
-            'amenities', 'status', 'remarks', 'bed_count',
+            'floor_name', 'number', 'type', 'rent_per_bed',
+            'amenities', 'tags', 'status', 'is_available',
+            'remarks', 'address', 'linked_bank', 'bed_count',
         ]
+
+    def validate_number(self, value):
+        property_id = self.context['view'].kwargs.get('property_pk')
+        qs = Room.objects.filter(property_id=property_id, number=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("A room with this number already exists in this property.")
+        return value
 
     def create(self, validated_data):
         bed_count = validated_data.pop('bed_count', 1)
-        property_obj = validated_data['floor'].property
+        floor_name = validated_data.pop('floor_name')
+        is_available = validated_data.pop('is_available', True)
+        validated_data.pop('remarks', '')
+        
+        property_id = self.context['view'].kwargs.get('property_pk')
+        property_obj = Property.objects.get(id=property_id)
+        
+        # Dynamically get or create the floor based on the name
+        floor, _ = Floor.objects.get_or_create(
+            property=property_obj, 
+            name=floor_name,
+            defaults={'sort_order': 0}
+        )
+        
+        validated_data['floor'] = floor
         validated_data['property'] = property_obj
         validated_data['total_beds'] = bed_count
+        validated_data['status'] = 'active' if is_available else 'inactive'
         room = super().create(validated_data)
 
         # Auto-create beds
@@ -130,11 +159,50 @@ class RoomCreateSerializer(serializers.ModelSerializer):
                 label=label,
             )
 
-        # Update property counts
-        property_obj.total_rooms = property_obj.rooms.count()
-        property_obj.total_beds = sum(r.total_beds for r in property_obj.rooms.all())
-        property_obj.save(update_fields=['total_rooms', 'total_beds'])
+        return room
 
+    def update(self, instance, validated_data):
+        bed_count = validated_data.pop('bed_count', None)
+        floor_name = validated_data.pop('floor_name', None)
+        is_available = validated_data.pop('is_available', None)
+        
+        if is_available is not None:
+            validated_data['status'] = 'active' if is_available else 'inactive'
+            
+        if floor_name:
+            floor, _ = Floor.objects.get_or_create(
+                property=instance.property, 
+                name=floor_name,
+                defaults={'sort_order': 0}
+            )
+            validated_data['floor'] = floor
+
+        room = super().update(instance, validated_data)
+
+        if bed_count is not None:
+            current_beds = room.beds.count()
+            if bed_count != current_beds:
+                if bed_count > current_beds:
+                    # Add beds
+                    labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                    beds_to_add = bed_count - current_beds
+                    start_idx = current_beds
+                    
+                    for i in range(beds_to_add):
+                        idx = start_idx + i
+                        label = labels[idx] if idx < len(labels) else str(idx + 1)
+                        Bed.objects.create(
+                            room=room,
+                            property=room.property,
+                            label=label,
+                        )
+                elif bed_count < current_beds:
+                    # Remove vacant beds only
+                    beds_to_remove = current_beds - bed_count
+                    vacant_beds = room.beds.filter(status='vacant').order_by('-created_at')[:beds_to_remove]
+                    for bed in vacant_beds:
+                        bed.delete()
+                    
         return room
 
 

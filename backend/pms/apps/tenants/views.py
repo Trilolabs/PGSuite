@@ -93,14 +93,6 @@ class TenantViewSet(viewsets.ModelViewSet):
             bed.tenant = None
             bed.status = 'vacant'
             bed.save(update_fields=['tenant', 'status'])
-            room = bed.room
-            room.occupied_beds = room.beds.filter(status='occupied').count()
-            room.save(update_fields=['occupied_beds'])
-
-        # Update property
-        prop = tenant.property
-        prop.occupied_beds = sum(r.occupied_beds for r in prop.rooms.all())
-        prop.save(update_fields=['occupied_beds'])
 
         # Mark tenant checked out
         tenant.status = 'checked_out'
@@ -129,9 +121,6 @@ class TenantViewSet(viewsets.ModelViewSet):
             old_bed.tenant = None
             old_bed.status = 'vacant'
             old_bed.save(update_fields=['tenant', 'status'])
-            old_room = old_bed.room
-            old_room.occupied_beds = old_room.beds.filter(status='occupied').count()
-            old_room.save(update_fields=['occupied_beds'])
 
         # Assign new bed
         new_bed.tenant = tenant
@@ -141,9 +130,6 @@ class TenantViewSet(viewsets.ModelViewSet):
         tenant.save(update_fields=['room'])
 
         new_room = new_bed.room
-        new_room.occupied_beds = new_room.beds.filter(status='occupied').count()
-        new_room.save(update_fields=['occupied_beds'])
-
         return Response({'detail': f'Moved to Room {new_room.number}, Bed {new_bed.label}.'})
 
     @action(detail=True, methods=['get'])
