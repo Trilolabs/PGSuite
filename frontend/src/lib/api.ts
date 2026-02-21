@@ -102,6 +102,7 @@ export const duesApi = {
 
 export const paymentApi = {
     list: (propertyId: string, params?: any) => api.get(`/properties/${propertyId}/payments/`, { params }),
+    summary: (propertyId: string) => api.get(`/properties/${propertyId}/payments/summary/`),
     create: (propertyId: string, data: any) => api.post(`/properties/${propertyId}/payments/`, data),
     receipt: (propertyId: string, id: string) => api.get(`/properties/${propertyId}/payments/${id}/receipt/`),
 };

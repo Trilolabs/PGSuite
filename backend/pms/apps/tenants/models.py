@@ -87,6 +87,7 @@ class Tenant(UUIDModel):
     rental_frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='monthly')
     rent_start_date = models.PositiveIntegerField(default=1, help_text='Day of month')
     opening_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    advance_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     # --- Electricity ---
     electricity_type = models.CharField(max_length=20, choices=ELECTRICITY_CHOICES, default='fixed')

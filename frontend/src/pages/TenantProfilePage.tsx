@@ -4,7 +4,7 @@ import { usePropertyStore } from '../stores/propertyStore';
 import { tenantApi, duesPackageApi, duesApi } from '../lib/api';
 import {
     Home, ChevronLeft, Download, FileText,
-    Clock, Upload, ChevronDown, Check, X as CloseIcon, Plus
+    Clock, Upload, ChevronDown, Check, X as CloseIcon, Plus, Trash
 } from 'lucide-react';
 
 export default function TenantProfilePage() {
@@ -18,6 +18,7 @@ export default function TenantProfilePage() {
 
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('profile');
+    const [passbookFilter, setPassbookFilter] = useState<'pdf' | 'dues' | 'collections' | 'deposit' | 'advance'>('pdf');
 
     // UI states
     const [showActions, setShowActions] = useState(false);
@@ -529,17 +530,20 @@ export default function TenantProfilePage() {
                                 border: '1px solid var(--border-primary)', marginBottom: 20, overflowX: 'auto',
                             }}>
                                 {[
-                                    { label: 'Total Dues', value: passbook?.total_dues || 0, color: '#ef4444' },
-                                    { label: 'Total Collection', value: passbook?.total_paid || 0, color: '#22c55e' },
-                                    { label: 'Security Deposit', value: tenant.deposit || 0, color: '#6366f1' },
-                                    { label: 'Advance', value: 0, color: '#6366f1' },
-                                    { label: 'Total Discount', value: 0, color: '#f59e0b' },
-                                ].map((stat, i) => (
-                                    <div key={i}>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: 700, color: stat.color }}>₹{Number(stat.value).toLocaleString('en-IN')}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{stat.label}</div>
-                                    </div>
-                                ))}
+                                    { label: 'Total Dues', value: passbook?.total_dues || 0, filterValue: 'dues', color: '#ef4444' },
+                                    { label: 'Total Collection', value: passbook?.total_paid || 0, filterValue: 'collections', color: '#22c55e' },
+                                    { label: 'Security Deposit', value: tenant.deposit || 0, filterValue: 'deposit', color: '#6366f1' },
+                                    { label: 'Advance', value: tenant.advance_balance || 0, filterValue: 'advance', color: '#6366f1' },
+                                    { label: 'Total Discount', value: 0, filterValue: 'discount', color: '#f59e0b' },
+                                ].map((stat, i) => {
+                                    const isActive = passbookFilter === stat.filterValue;
+                                    return (
+                                        <div key={i} onClick={() => setPassbookFilter(stat.filterValue as any)} style={{ cursor: 'pointer', padding: '8px 12px', borderRadius: 8, background: isActive ? `${stat.color}15` : 'transparent', border: isActive ? `1px solid ${stat.color}50` : '1px solid transparent', transition: 'all 0.2s' }}>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: stat.color }}>₹{Number(stat.value).toLocaleString('en-IN')}</div>
+                                            <div style={{ fontSize: '0.75rem', color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', marginTop: 2, fontWeight: isActive ? 600 : 400 }}>{stat.label}</div>
+                                        </div>
+                                    )
+                                })}
                                 <div style={{ borderLeft: '1px solid var(--border-primary)', paddingLeft: 32 }}>
                                     <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#6b21a8', cursor: 'pointer' }} onClick={() => setShowAddDues(true)}>Add Dues</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Add Dues</div>
@@ -581,190 +585,260 @@ export default function TenantProfilePage() {
                                     </div>
                                 </div>
 
-                                {/* Summary Box */}
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 120px)', border: '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.75rem', borderRadius: 4, overflow: 'hidden' }}>
-                                        <div style={{ padding: 10, background: '#f8fafc' }}>
-                                            <div>Total Added Dues (+)</div>
-                                            <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.total_dues || 0}</div>
-                                        </div>
-                                        <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
-                                            <div>Total Collection (-)</div>
-                                            <div style={{ color: '#3b82f6', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.total_paid || 0}</div>
-                                        </div>
-                                        <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
-                                            <div>Total Used Discount (-)</div>
-                                            <div style={{ color: '#64748b', fontWeight: 600, marginTop: 4 }}>Rs 0</div>
-                                        </div>
-                                        <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
-                                            <div>Net Balance</div>
-                                            <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.net_balance || 0}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#3b82f6', marginBottom: 20, cursor: 'pointer' }}>
-                                    All transactions
-                                </div>
-
-                                {/* Ledger Rows */}
-                                <div style={{ border: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px', background: '#f1f5f9', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>
-                                        <div style={{ padding: 10, textAlign: 'center' }}>Traxn Date</div>
-                                        <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0' }}>Dues/Payment Details</div>
-                                        <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Dues Amt</div>
-                                        <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Paid Amt</div>
-                                        <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Balance</div>
-                                    </div>
-
-                                    {passbook?.ledger?.map((monthGroup: any, idx: number) => (
-                                        <div key={idx}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                                <div style={{ padding: '8px 10px', fontWeight: 700, color: '#1e40af', textAlign: 'center' }}>{monthGroup.month_name}</div>
-                                                <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', color: '#22c55e', fontSize: '0.7rem' }}>
-                                                    (Opening Balance : <span style={{ color: '#22c55e' }}>Rs {monthGroup.opening_balance} Advance</span> )
-                                                </div>
+                                {passbookFilter === 'pdf' && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 120px)', border: '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.75rem', borderRadius: 4, overflow: 'hidden' }}>
+                                            <div style={{ padding: 10, background: '#f8fafc' }}>
+                                                <div>Total Added Dues (+)</div>
+                                                <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.total_dues || 0}</div>
                                             </div>
-                                            {monthGroup.entries.map((item: any, i: number) => (
-                                                <div key={i} style={{
-                                                    display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px',
-                                                    borderBottom: '1px solid #e2e8f0',
-                                                    background: item.type === 'due' ? '#fef2f250' : '#f0fdf450',
-                                                }}>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>
-                                                        {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
+                                                <div>Total Collection (-)</div>
+                                                <div style={{ color: '#3b82f6', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.total_paid || 0}</div>
+                                            </div>
+                                            <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
+                                                <div>Total Used Discount (-)</div>
+                                                <div style={{ color: '#64748b', fontWeight: 600, marginTop: 4 }}>Rs 0</div>
+                                            </div>
+                                            <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
+                                                <div>Net Balance</div>
+                                                <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.net_balance || 0}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div onClick={() => setPassbookFilter('pdf')} style={{ textAlign: 'center', fontSize: '0.85rem', color: passbookFilter === 'pdf' ? '#1e293b' : '#3b82f6', fontWeight: passbookFilter === 'pdf' ? 700 : 500, marginBottom: 20, cursor: 'pointer', display: 'inline-block', padding: '6px 16px', background: passbookFilter === 'pdf' ? '#e2e8f0' : 'transparent', borderRadius: 20 }}>
+                                    All transactions (PDF)
+                                </div>
+
+                                {/* Conditional Ledger Display */}
+                                {passbookFilter === 'pdf' ? (
+                                    <div style={{ border: '1px solid #e2e8f0', fontSize: '0.75rem', borderRadius: 8, overflow: 'hidden' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px', background: '#f1f5f9', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>
+                                            <div style={{ padding: 10, textAlign: 'center' }}>Traxn Date</div>
+                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0' }}>Dues/Payment Details</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Dues Amt</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Paid Amt</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Balance</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Action</div>
+                                        </div>
+
+                                        {(passbook?.ledger?.map((monthGroup: any) => {
+                                            const entries = monthGroup.entries;
+                                            return { ...monthGroup, entries };
+                                        }).filter((mg: any) => mg.entries.length > 0) || []).map((monthGroup: any, idx: number) => (
+                                            <div key={idx}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                    <div style={{ padding: '8px 10px', fontWeight: 700, color: '#1e40af', textAlign: 'center' }}>{monthGroup.month_name}</div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', color: '#22c55e', fontSize: '0.7rem' }}>
+                                                        (Opening Balance : <span style={{ color: '#22c55e' }}>Rs {monthGroup.opening_balance} Advance</span> )
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}>
-                                                        <div style={{ fontWeight: 600 }}>{item.data.type || 'Payment'} added by Owner</div>
-                                                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontStyle: 'italic', marginTop: 2 }}>
-                                                            Manual Remarks : {item.data.description || item.data.notes || ''}
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                </div>
+                                                {monthGroup.entries.map((item: any, i: number) => (
+                                                    <div key={i} style={{
+                                                        display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px',
+                                                        borderBottom: '1px solid #e2e8f0',
+                                                        background: item.type === 'due' ? '#fef2f250' : '#f0fdf450',
+                                                    }}>
+                                                        <div style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>
+                                                            {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                        </div>
+                                                        <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}>
+                                                            <div style={{ fontWeight: 600 }}>{item.data.type || 'Payment'} added by Owner</div>
+                                                            <div style={{ fontSize: '0.65rem', color: '#64748b', fontStyle: 'italic', marginTop: 2 }}>
+                                                                Manual Remarks : {item.data.description || item.data.notes || ''}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', background: item.type === 'due' ? '#fee2e2' : 'transparent', color: item.type === 'due' ? '#991b1b' : 'inherit' }}>
+                                                            {item.type === 'due' ? item.amount : ''}
+                                                        </div>
+                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', background: item.type === 'payment' ? '#dcfce7' : 'transparent', color: item.type === 'payment' ? '#166534' : 'inherit' }}>
+                                                            {item.type === 'payment' ? item.amount : ''}
+                                                        </div>
+                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>
+                                                            <span style={{ color: item.running_balance > 0 ? '#ef4444' : '#22c55e' }}>
+                                                                {Math.abs(item.running_balance)} {item.running_balance > 0 ? 'Dues' : 'Adv'}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                                                            {item.type === 'due' ? (
+                                                                <button title="Delete Due" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-red-500 hover:bg-red-50 rounded"><Trash size={14} /></button>
+                                                            ) : (
+                                                                <button title="Print Receipt" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-blue-500 hover:bg-blue-50 rounded"><FileText size={14} /></button>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', background: item.type === 'due' ? '#fee2e2' : 'transparent', color: item.type === 'due' ? '#991b1b' : 'inherit' }}>
-                                                        {item.type === 'due' ? item.amount : ''}
+                                                ))}
+                                                {/* Month Total */}
+                                                <div style={{
+                                                    display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px',
+                                                    borderBottom: '1px solid #e2e8f0', background: '#f8fafc',
+                                                }}>
+                                                    <div style={{ padding: '8px 10px' }}></div>
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
+                                                        {monthGroup.month_name} Total
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', background: item.type === 'payment' ? '#dcfce7' : 'transparent', color: item.type === 'payment' ? '#166534' : 'inherit' }}>
-                                                        {item.type === 'payment' ? item.amount : ''}
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
+                                                        {monthGroup.month_total_dues}
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>
-                                                        <span style={{ color: item.running_balance > 0 ? '#ef4444' : '#22c55e' }}>
-                                                            {Math.abs(item.running_balance)} {item.running_balance > 0 ? 'Dues' : 'Adv'}
-                                                        </span>
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
+                                                        {monthGroup.month_total_paid}
+                                                    </div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ border: '1px solid #e2e8f0', fontSize: '0.75rem', borderRadius: 8, overflow: 'hidden' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 100px 100px 80px', background: '#f1f5f9', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>
+                                            <div style={{ padding: 10, textAlign: 'center' }}>Date</div>
+                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>Amount</div>
+                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0' }}>Category / Details</div>
+                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>Due Date</div>
+                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>Added By</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Action</div>
+                                        </div>
+
+                                        {(passbook?.ledger?.flatMap((mg: any) => mg.entries) || []).filter((item: any) => {
+                                            if (passbookFilter === 'dues') return item.type === 'due';
+                                            if (passbookFilter === 'collections') return item.type === 'payment';
+                                            if (passbookFilter === 'deposit') return item.data.type?.toLowerCase().includes('deposit');
+                                            if (passbookFilter === 'advance') return item.running_balance < 0 || (item.type === 'payment' && item.amount > 0 && item.data?.notes?.toLowerCase().includes('advance'));
+                                            return true;
+                                        }).map((item: any, i: number) => (
+                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 100px 100px 80px', borderBottom: '1px solid #e2e8f0', background: '#fff', alignItems: 'center' }}>
+                                                <div style={{ padding: '12px 10px', textAlign: 'center', color: '#64748b' }}>
+                                                    {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </div>
+                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 600, color: item.type === 'due' ? '#ef4444' : '#22c55e' }}>
+                                                    Rs {item.amount}
+                                                </div>
+                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0' }}>
+                                                    <div style={{ fontWeight: 600 }}>{item.data.type || (item.type === 'due' ? 'Custom Due' : 'Payment')}</div>
+                                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: 2 }}>{item.data.description || item.data.notes || ''}</div>
+                                                </div>
+                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                                    -
+                                                </div>
+                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>
+                                                    Admin
+                                                </div>
+                                                <div style={{ padding: '12px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', display: 'flex', gap: 6, justifyContent: 'center' }}>
+                                                    {item.type === 'due' ? (
+                                                        <button title="Delete" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}><Trash size={14} /></button>
+                                                    ) : (
+                                                        <button title="Print Receipt" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}><FileText size={14} /></button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {(passbook?.ledger?.flatMap((mg: any) => mg.entries) || []).filter((item: any) => {
+                                            if (passbookFilter === 'dues') return item.type === 'due';
+                                            if (passbookFilter === 'collections') return item.type === 'payment';
+                                            if (passbookFilter === 'deposit') return item.data.type?.toLowerCase().includes('deposit');
+                                            if (passbookFilter === 'advance') return item.running_balance < 0 || (item.type === 'payment' && item.amount > 0 && item.data?.notes?.toLowerCase().includes('advance'));
+                                            return true;
+                                        }).length === 0 && (
+                                                <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>No transactions found for this filter.</div>
+                                            )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ===== ADD DUES SIDE DRAWER ===== */}
+                    {showAddDues && (
+                        <div style={{
+                            position: 'absolute', top: 0, right: 0, bottom: 0, width: 400,
+                            background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)',
+                            boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', zIndex: 200, display: 'flex', flexDirection: 'column'
+                        }}>
+                            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Add Invoice</h3>
+                                <button onClick={() => setShowAddDues(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                    <CloseIcon size={20} />
+                                </button>
+                            </div>
+
+                            <div style={{ padding: 16 }}>
+                                <div style={{ position: 'relative', marginBottom: 16 }}>
+                                    <input className="form-input" placeholder="Search due types..." style={{ paddingLeft: 32, fontSize: '0.85rem' }} />
+                                    <FileText size={16} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-muted)' }} />
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 'calc(100vh - 140px)' }}>
+                                    {duesPackages.map(pkg => (
+                                        <div key={pkg.id} style={{
+                                            border: '1px solid var(--border-primary)', borderRadius: 8, padding: 16,
+                                            background: 'var(--bg-card)'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{pkg.name}</div>
+                                                    {/* We mock pending since we don't have per-package split in our API yet */}
+                                                    <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4 }}>Pending: ₹0</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Due: -</div>
+                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 8 }}>
+                                                        {pkg.type === 'fixed' ? `Fixed Amount: ₹${pkg.default_amount}` : 'Fixed Amount: Not fixed'}
                                                     </div>
                                                 </div>
-                                            ))}
-                                            {/* Month Total */}
-                                            <div style={{
-                                                display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px',
-                                                borderBottom: '1px solid #e2e8f0', background: '#f8fafc',
-                                            }}>
-                                                <div style={{ padding: '8px 10px' }}></div>
-                                                <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
-                                                    {monthGroup.month_name} Total
-                                                </div>
-                                                <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
-                                                    {monthGroup.month_total_dues}
-                                                </div>
-                                                <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
-                                                    {monthGroup.month_total_paid}
-                                                </div>
-                                                <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    style={{ padding: '4px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4, background: '#3b82f6' }}
+                                                    onClick={() => handleAddDue(pkg)}
+                                                >
+                                                    <Plus size={14} /> Add
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
+                                    {duesPackages.length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                            No active dues packages found.
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ===== HISTORY SIDE DRAWER ===== */}
+                    {showHistory && (
+                        <div style={{
+                            position: 'absolute', top: 0, right: 0, bottom: 0, width: 360,
+                            background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)',
+                            boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', zIndex: 200, display: 'flex', flexDirection: 'column'
+                        }}>
+                            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Activity Logs</h3>
+                                <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                    <CloseIcon size={20} />
+                                </button>
+                            </div>
+
+                            <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+                                <div style={{ paddingBottom: 16, borderLeft: '2px solid #e2e8f0', position: 'relative', marginLeft: 8 }}>
+                                    <div style={{ position: 'absolute', left: -7, top: 0, width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div>
+                                    <div style={{ paddingLeft: 16 }}>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>Tenant Profile Created</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{tenant.created_at ? new Date(tenant.created_at).toLocaleString('en-IN') : 'Recently'}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>By: Owner</div>
+                                    </div>
+                                </div>
+                                {/* More mocked history items would go here */}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* ===== ADD DUES SIDE DRAWER ===== */}
-            {showAddDues && (
-                <div style={{
-                    position: 'absolute', top: 0, right: 0, bottom: 0, width: 400,
-                    background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)',
-                    boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', zIndex: 200, display: 'flex', flexDirection: 'column'
-                }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Add Invoice</h3>
-                        <button onClick={() => setShowAddDues(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                            <CloseIcon size={20} />
-                        </button>
-                    </div>
-
-                    <div style={{ padding: 16 }}>
-                        <div style={{ position: 'relative', marginBottom: 16 }}>
-                            <input className="form-input" placeholder="Search due types..." style={{ paddingLeft: 32, fontSize: '0.85rem' }} />
-                            <FileText size={16} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-muted)' }} />
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 'calc(100vh - 140px)' }}>
-                            {duesPackages.map(pkg => (
-                                <div key={pkg.id} style={{
-                                    border: '1px solid var(--border-primary)', borderRadius: 8, padding: 16,
-                                    background: 'var(--bg-card)'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{pkg.name}</div>
-                                            {/* We mock pending since we don't have per-package split in our API yet */}
-                                            <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: 4 }}>Pending: ₹0</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Due: -</div>
-                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 8 }}>
-                                                {pkg.type === 'fixed' ? `Fixed Amount: ₹${pkg.default_amount}` : 'Fixed Amount: Not fixed'}
-                                            </div>
-                                        </div>
-                                        <button
-                                            className="btn btn-primary"
-                                            style={{ padding: '4px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4, background: '#3b82f6' }}
-                                            onClick={() => handleAddDue(pkg)}
-                                        >
-                                            <Plus size={14} /> Add
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {duesPackages.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                    No active dues packages found.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ===== HISTORY SIDE DRAWER ===== */}
-            {showHistory && (
-                <div style={{
-                    position: 'absolute', top: 0, right: 0, bottom: 0, width: 360,
-                    background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)',
-                    boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', zIndex: 200, display: 'flex', flexDirection: 'column'
-                }}>
-                    <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Activity Logs</h3>
-                        <button onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                            <CloseIcon size={20} />
-                        </button>
-                    </div>
-
-                    <div style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
-                        <div style={{ paddingBottom: 16, borderLeft: '2px solid #e2e8f0', position: 'relative', marginLeft: 8 }}>
-                            <div style={{ position: 'absolute', left: -7, top: 0, width: 12, height: 12, borderRadius: '50%', background: '#3b82f6' }}></div>
-                            <div style={{ paddingLeft: 16 }}>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>Tenant Profile Created</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{tenant.created_at ? new Date(tenant.created_at).toLocaleString('en-IN') : 'Recently'}</div>
-                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>By: Owner</div>
-                            </div>
-                        </div>
-                        {/* More mocked history items would go here */}
-                    </div>
-                </div>
-            )}
         </div>
     );
-}
+};

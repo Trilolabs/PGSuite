@@ -81,6 +81,7 @@ class Payment(UUIDModel):
     property = models.ForeignKey('properties.Property', on_delete=models.CASCADE, related_name='payments')
     due = models.ForeignKey(Due, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    advance_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     payment_date = models.DateField()
     mode = models.CharField(max_length=20, choices=MODE_CHOICES, default='cash')
     reference_number = models.CharField(max_length=100, blank=True)
