@@ -1,6 +1,6 @@
 """Tenants app serializers."""
 from rest_framework import serializers
-from .models import Tenant, OldTenant, Booking, Lead, Document, Agreement, FoodAttendance
+from .models import Tenant, OldTenant, Lead, Document, Agreement, FoodAttendance
 
 
 # ======================== TENANT ========================
@@ -58,13 +58,21 @@ class TenantCreateSerializer(serializers.ModelSerializer):
         validated_data['property_id'] = self.context['property_pk']
         tenant = super().create(validated_data)
 
+        from datetime import date
+        today = tenant.move_in or date.today()
+        is_booking_future = tenant.move_in and tenant.move_in > date.today()
+        
+        if is_booking_future:
+            tenant.status = 'booking_pending'
+            tenant.save(update_fields=['status'])
+
         # Assign bed if provided
         if bed_id:
             from pms.apps.properties.models import Bed
             try:
                 bed = Bed.objects.get(pk=bed_id, status='vacant')
                 bed.tenant = tenant
-                bed.status = 'occupied'
+                bed.status = 'reserved' if is_booking_future else 'occupied'
                 bed.save(update_fields=['tenant', 'status'])
             except Bed.DoesNotExist:
                 pass
@@ -72,10 +80,7 @@ class TenantCreateSerializer(serializers.ModelSerializer):
         # RentOk Auto-Dues Logic
         from pms.apps.financials.models import Due
         import calendar
-        from datetime import date
         from dateutil.relativedelta import relativedelta
-        
-        today = tenant.move_in or date.today()
         
         # 1. Security Deposit
         if tenant.deposit > 0:
@@ -124,15 +129,6 @@ class OldTenantSerializer(serializers.ModelSerializer):
         model = OldTenant
         fields = '__all__'
         read_only_fields = ['id', 'property', 'created_at', 'updated_at']
-
-
-# ======================== BOOKING ========================
-
-class BookingSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Booking
-        fields = '__all__'
-        read_only_fields = ['id', 'property', 'created_by', 'created_at', 'updated_at']
 
 
 # ======================== LEAD ========================

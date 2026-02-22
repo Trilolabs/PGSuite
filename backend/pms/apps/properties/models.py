@@ -38,6 +38,8 @@ class Property(UUIDModel):
     logo_url = models.URLField(blank=True)
     website_url = models.URLField(blank=True)
     is_active = models.BooleanField(default=True)
+    preferred_tenant_type = models.CharField(max_length=50, blank=True)
+    curfew_time = models.TimeField(null=True, blank=True)
 
     class Meta:
         app_label = 'properties'
@@ -159,6 +161,7 @@ class Bed(UUIDModel):
         ('vacant', 'Vacant'),
         ('occupied', 'Occupied'),
         ('blocked', 'Blocked'),
+        ('reserved', 'Reserved'),
         ('under_notice', 'Under Notice'),
     ]
 

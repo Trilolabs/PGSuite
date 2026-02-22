@@ -70,4 +70,4 @@ frontend/build/
 .eslintcache
 
 # Optional: uncomment to ignore one-off test scripts
-# backend/test_*.py
+backend/test_*.py

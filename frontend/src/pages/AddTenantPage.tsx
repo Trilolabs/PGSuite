@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { UserPlus, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { tenantApi, roomApi, duesPackageApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
@@ -46,13 +46,18 @@ export default function AddTenantPage() {
     const [createdTenantId, setCreatedTenantId] = useState('');
     const { selectedPropertyId } = usePropertyStore();
     const navigate = useNavigate();
+    const location = useLocation();
+    const isBooking = location.state?.isBooking;
 
     const [form, setForm] = useState({
         name: '', phone: '', email: '', gender: 'male',
         tenant_type: 'student', dob: '',
         father_name: '', father_phone: '', mother_name: '', mother_phone: '',
         permanent_address: '', emergency_contact: '',
-        room: '', bed_id: '', move_in: new Date().toISOString().split('T')[0],
+        room: '', bed_id: '',
+        move_in: isBooking
+            ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0],
         rent: '', deposit: '', rent_start_date: '1',
         payment_mode: 'cash', agreement_period: '11',
         lock_in_period: '3', stay_type: 'long_stay',

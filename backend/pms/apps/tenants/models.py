@@ -8,8 +8,10 @@ from django.db import models
 class Tenant(UUIDModel):
     STATUS_CHOICES = [
         ('active', 'Active'),
+        ('booking_pending', 'Booking Pending'),
         ('under_notice', 'Under Notice'),
         ('checked_out', 'Checked Out'),
+        ('cancelled', 'Cancelled'),
     ]
     GENDER_CHOICES = [('male', 'Male'), ('female', 'Female'), ('other', 'Other')]
     TENANT_TYPE_CHOICES = [
@@ -155,40 +157,6 @@ class OldTenant(UUIDModel):
 
     def __str__(self):
         return f'{self.name} (moved out {self.move_out})'
-
-
-# ======================== BOOKING ========================
-
-class Booking(UUIDModel):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'), ('confirmed', 'Confirmed'),
-        ('converted', 'Converted'), ('cancelled', 'Cancelled'),
-        ('expired', 'Expired'),
-    ]
-
-    property = models.ForeignKey('properties.Property', on_delete=models.CASCADE, related_name='bookings')
-    room = models.ForeignKey('properties.Room', on_delete=models.SET_NULL, null=True, blank=True)
-    bed = models.ForeignKey('properties.Bed', on_delete=models.SET_NULL, null=True, blank=True)
-    name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=20)
-    email = models.EmailField(blank=True)
-    booking_date = models.DateField()
-    move_in_date = models.DateField()
-    rent = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    token_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    token_paid = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    notes = models.TextField(blank=True)
-    source = models.CharField(max_length=50, blank=True)
-    created_by = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True)
-
-    class Meta:
-        app_label = 'tenants'
-        db_table = 'bookings'
-        ordering = ['-booking_date']
-
-    def __str__(self):
-        return f'Booking: {self.name} - {self.move_in_date}'
 
 
 # ======================== LEAD ========================

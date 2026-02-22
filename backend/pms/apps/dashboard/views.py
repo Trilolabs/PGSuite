@@ -6,7 +6,7 @@ from django.db.models import Sum, Count, Q
 from datetime import date, timedelta
 
 from pms.apps.properties.models import Property
-from pms.apps.tenants.models import Tenant, OldTenant, Booking, Lead
+from pms.apps.tenants.models import Tenant, OldTenant, Lead
 from pms.apps.financials.models import Due, Payment, Expense
 
 
@@ -64,9 +64,10 @@ class DashboardOverviewView(APIView):
             property_id__in=property_ids, status='active',
         ).aggregate(total=Sum('deposit'))['total'] or 0
 
-        pending_bookings = Booking.objects.filter(
+        pending_bookings = Tenant.objects.filter(
             property_id__in=property_ids,
-            status__in=['pending', 'confirmed'],
+            status__in=['active', 'booking_pending'],
+            move_in__gt=today
         ).count()
 
         active_leads = Lead.objects.filter(
@@ -119,8 +120,9 @@ class PropertyDashboardView(APIView):
         ).aggregate(total=Sum('amount'))['total'] or 0
 
         tenants = Tenant.objects.filter(property_id=pid)
-        active = tenants.filter(status='active').count()
+        active = tenants.filter(status='active', move_in__lte=today).count()
         notice = tenants.filter(status='under_notice').count()
+        pending_bookings = tenants.filter(status__in=['active', 'booking_pending'], move_in__gt=today).count()
 
         recent_payments = Payment.objects.filter(
             property_id=pid,
@@ -140,6 +142,7 @@ class PropertyDashboardView(APIView):
             'monthly_expenses': monthly_expenses,
             'active_tenants': active,
             'under_notice': notice,
+            'pending_bookings': pending_bookings,
             'recent_payments': [
                 {
                     'tenant': p.tenant.name,

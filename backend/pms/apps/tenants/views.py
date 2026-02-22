@@ -8,10 +8,10 @@ from django.utils import timezone
 from datetime import date
 
 from pms.core.permissions import IsPropertyManager
-from .models import Tenant, OldTenant, Booking, Lead, Document, Agreement, FoodAttendance
+from .models import Tenant, OldTenant, Lead, Document, Agreement, FoodAttendance
 from .serializers import (
     TenantListSerializer, TenantDetailSerializer, TenantCreateSerializer,
-    OldTenantSerializer, BookingSerializer,
+    OldTenantSerializer,
     LeadListSerializer, LeadDetailSerializer,
     DocumentSerializer, AgreementSerializer,
     FoodAttendanceSerializer, BulkFoodAttendanceSerializer,
@@ -27,9 +27,18 @@ class TenantViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'move_in', 'rent', 'created_at']
 
     def get_queryset(self):
-        return Tenant.objects.filter(
+        qs = Tenant.objects.filter(
             property_id=self.kwargs['property_pk'],
         ).select_related('room', 'property')
+
+        is_booking = self.request.query_params.get('is_booking')
+        from django.db.models import Q
+        if is_booking == 'true':
+            qs = qs.filter(Q(move_in__gt=date.today()) | Q(status__in=['booking_pending', 'cancelled']))
+        elif is_booking == 'false':
+            qs = qs.exclude(status__in=['booking_pending', 'cancelled'])
+
+        return qs
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -70,6 +79,10 @@ class TenantViewSet(viewsets.ModelViewSet):
             d.amount - d.paid_amount
             for d in tenant.dues.filter(status__in=['unpaid', 'partially_paid'])
         )
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        snapshot = json.loads(json.dumps(TenantDetailSerializer(tenant).data, cls=DjangoJSONEncoder))
+
         OldTenant.objects.create(
             tenant_id=tenant.id,
             property_id=tenant.property_id,
@@ -84,7 +97,7 @@ class TenantViewSet(viewsets.ModelViewSet):
             deposit_amount=tenant.deposit,
             checkout_reason=request.data.get('reason', 'Move-out'),
             checkout_date=date.today(),
-            snapshot_data=TenantDetailSerializer(tenant).data,
+            snapshot_data=snapshot,
         )
 
         # Free bed
@@ -175,6 +188,41 @@ class TenantViewSet(viewsets.ModelViewSet):
             'ledger': list(grouped.values())
         })
 
+    @action(detail=True, methods=['post'])
+    def accept_booking(self, request, property_pk=None, pk=None):
+        """Accept a pending booking and make it active."""
+        tenant = self.get_object()
+        if tenant.status != 'booking_pending':
+            return Response({'detail': 'Only pending bookings can be accepted.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        tenant.status = 'active'
+        tenant.save(update_fields=['status'])
+        
+        bed = getattr(tenant, 'bed', None)
+        if bed and bed.status == 'reserved':
+            bed.status = 'occupied'
+            bed.save(update_fields=['status'])
+            
+        return Response({'detail': 'Booking accepted successfully.'})
+
+    @action(detail=True, methods=['post'])
+    def cancel_booking(self, request, property_pk=None, pk=None):
+        """Cancel a future booking."""
+        tenant = self.get_object()
+        tenant.status = 'cancelled'
+        current_remarks = tenant.remarks or ''
+        tenant.remarks = current_remarks + f"\nCancelled Booking: {request.data.get('reason', '')}"
+        tenant.save(update_fields=['status', 'remarks'])
+        
+        # Free up bed if assigned
+        bed = getattr(tenant, 'bed', None)
+        if bed:
+            bed.tenant = None
+            bed.status = 'vacant'
+            bed.save(update_fields=['tenant', 'status'])
+            
+        return Response({'detail': 'Booking cancelled successfully.'})
+
 
 class OldTenantViewSet(viewsets.ModelViewSet):
     """Archived tenants — read-heavy, limited writes."""
@@ -196,68 +244,6 @@ class OldTenantViewSet(viewsets.ModelViewSet):
         old_tenant.save(update_fields=['deposit_refunded', 'settlement_status'])
         return Response({'detail': 'Deposit marked as refunded.'})
 
-
-class BookingViewSet(viewsets.ModelViewSet):
-    """Booking management with convert-to-tenant flow."""
-    serializer_class = BookingSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['status']
-    search_fields = ['name', 'phone']
-
-    def get_queryset(self):
-        return Booking.objects.filter(property_id=self.kwargs['property_pk'])
-
-    def perform_create(self, serializer):
-        serializer.save(
-            property_id=self.kwargs['property_pk'],
-            created_by=self.request.user,
-        )
-
-    @action(detail=True, methods=['post'])
-    def convert(self, request, property_pk=None, pk=None):
-        """Convert booking to a tenant."""
-        booking = self.get_object()
-        if booking.status != 'confirmed':
-            return Response(
-                {'detail': 'Only confirmed bookings can be converted.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        tenant = Tenant.objects.create(
-            property_id=property_pk,
-            room=booking.room.floor.rooms.first() if booking.room else None,
-            name=booking.name,
-            phone=booking.phone,
-            email=booking.email,
-            move_in=booking.move_in_date,
-            rent=booking.rent,
-            booked_by=str(booking.created_by or ''),
-        )
-
-        # Assign bed if booking had one
-        if booking.bed:
-            from pms.apps.properties.models import Bed
-            bed = booking.bed
-            if bed.status == 'vacant':
-                bed.tenant = tenant
-                bed.status = 'occupied'
-                bed.save(update_fields=['tenant', 'status'])
-                tenant.room = bed.room
-                tenant.save(update_fields=['room'])
-
-        booking.status = 'converted'
-        booking.save(update_fields=['status'])
-
-        return Response(TenantListSerializer(tenant).data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['post'])
-    def cancel(self, request, property_pk=None, pk=None):
-        booking = self.get_object()
-        booking.status = 'cancelled'
-        booking.notes += f'\nCancelled: {request.data.get("reason", "")}'
-        booking.save(update_fields=['status', 'notes'])
-        return Response({'detail': 'Booking cancelled.'})
 
 
 class LeadViewSet(viewsets.ModelViewSet):
@@ -286,21 +272,19 @@ class LeadViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def convert_booking(self, request, property_pk=None, pk=None):
-        """Convert lead to a booking."""
+        """Convert lead to a booking (future tenant)."""
         lead = self.get_object()
-        booking = Booking.objects.create(
+        tenant = Tenant.objects.create(
             property_id=property_pk,
             name=lead.name,
             phone=lead.phone,
             email=lead.email,
-            booking_date=date.today(),
-            move_in_date=lead.expected_move_in or date.today(),
-            source=lead.source,
-            created_by=request.user,
+            move_in=lead.expected_move_in or date.today(),
+            booked_by=str(request.user),
         )
         lead.status = 'converted'
         lead.save(update_fields=['status'])
-        return Response(BookingSerializer(booking).data, status=status.HTTP_201_CREATED)
+        return Response(TenantListSerializer(tenant).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'])
     def stats(self, request, property_pk=None):

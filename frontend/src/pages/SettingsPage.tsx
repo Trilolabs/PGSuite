@@ -1,27 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Building2, Plus, Save, Mail, MapPin } from 'lucide-react';
-import { propertyApi } from '../lib/api';
-import { usePropertyStore } from '../stores/propertyStore';
+import { useState, useEffect } from 'react';
+import { Settings, Home, X, Users, MessageSquare, Briefcase, FileText, Lock, Globe, Bell, Stamp, Save, Plus, Mail, MapPin, Building2 } from 'lucide-react';
+import PropertySettingsDrawer from '../components/PropertySettingsDrawer';
 import { useAuthStore } from '../stores/authStore';
-
-interface Property {
-    id: string;
-    name: string;
-    code: string;
-    type: string;
-    gender: string;
-    address: string;
-    city: string;
-    state: string;
-    phone: string;
-    email: string;
-    total_rooms: number;
-    total_beds: number;
-    occupied_beds: number;
-}
+import { usePropertyStore } from '../stores/propertyStore';
+import { propertyApi } from '../lib/api';
 
 export default function SettingsPage() {
-    const [properties, setProperties] = useState<Property[]>([]);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [placeholderModal, setPlaceholderModal] = useState<string | null>(null);
+
+    // Legacy Settings State
+    const [properties, setProperties] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAdd, setShowAdd] = useState(false);
     const [form, setForm] = useState({ name: '', code: '', type: 'pg', gender: 'male', address: '', city: '', state: '', phone: '', email: '' });
@@ -45,16 +34,74 @@ export default function SettingsPage() {
         } catch { }
     };
 
+    const categories = [
+        {
+            title: "Property Management & Financial",
+            items: [
+                { id: 'property', label: 'Property Settings', desc: 'View and update property details', icon: Home, highlight: true },
+                { id: 'management', label: 'Management Details', desc: 'Configure management settings', icon: Users },
+                { id: 'rules', label: 'Renting & Stay Rules', desc: 'Set rules for renting and stays', icon: FileText },
+                { id: 'payment', label: 'Dues & Payment Settings', desc: 'Configure payment settings', icon: Briefcase },
+                { id: 'website', label: 'My Website Details', desc: 'Manage your website information', icon: Globe },
+                { id: 'chat', label: 'Chat Widget Settings', desc: 'Configure WhatsApp chat widget', icon: MessageSquare },
+            ]
+        },
+        {
+            title: "Tenant Management",
+            items: [
+                { id: 'kyc', label: 'Tenant Onboarding & KYC', desc: 'Manage verification process', icon: Users },
+                { id: 'eviction', label: 'Eviction Settings', desc: 'Configure eviction policies', icon: X },
+                { id: 'checkin', label: 'Web Checkin Settings', desc: 'Manage web check-in', icon: Globe },
+            ]
+        },
+        {
+            title: "Attendance & Food",
+            items: [
+                { id: 'attendance', label: 'Attendance Settings', desc: 'Manage attendance configs', icon: Users },
+                { id: 'food', label: 'Food Attendance Settings', desc: 'Manage food timings', icon: FileText },
+            ]
+        },
+        {
+            title: "Agreement Settings",
+            items: [
+                { id: 'template', label: 'Agreement Template', desc: 'Manage agreement template', icon: FileText },
+                { id: 'first_party', label: 'First Party Agreement', desc: 'Manage first party agreement', icon: FileText },
+                { id: 'stamps', label: 'Stamps', desc: 'Manage stamps', icon: Stamp },
+            ]
+        },
+        {
+            title: "Communication",
+            items: [
+                { id: 'notifications', label: 'Notification & Messages', desc: 'Manage alerts', icon: Bell },
+            ]
+        },
+        {
+            title: "Security",
+            items: [
+                { id: 'security', label: 'Security Settings', desc: 'Passwords and 2FA', icon: Lock },
+            ]
+        }
+    ];
+
+    const handleItemClick = (id: string, label: string) => {
+        if (id === 'property') {
+            setDrawerOpen(true);
+        } else {
+            setPlaceholderModal(label);
+        }
+    };
+
     return (
-        <div className="page-container">
-            <div className="page-header">
+        <div className="page-container" style={{ maxWidth: 1200, margin: '0 auto' }}>
+            <div className="page-header" style={{ marginBottom: 30 }}>
                 <div>
-                    <h1>Settings</h1>
-                    <p className="subtitle">Manage your properties and account</p>
+                    <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        Settings
+                    </h1>
                 </div>
             </div>
 
-            {/* Account Info */}
+            {/* Legacy Account & Properties Section (Restored) */}
             <div className="card" style={{ marginBottom: 20 }}>
                 <div className="card-header">
                     <div className="card-title">Account</div>
@@ -78,9 +125,8 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* Properties */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Properties</h2>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>Your Properties</h2>
                 <button className="btn btn-primary" onClick={() => setShowAdd(!showAdd)}>
                     <Plus size={16} /> Add Property
                 </button>
@@ -147,7 +193,7 @@ export default function SettingsPage() {
             {loading ? (
                 <div className="page-loading"><div className="spinner"></div></div>
             ) : properties.length === 0 ? (
-                <div className="card">
+                <div className="card" style={{ marginBottom: 30 }}>
                     <div className="empty-state">
                         <Building2 size={48} />
                         <h3>No Properties</h3>
@@ -155,7 +201,7 @@ export default function SettingsPage() {
                     </div>
                 </div>
             ) : (
-                <div className="grid-2">
+                <div className="grid-2" style={{ marginBottom: 30 }}>
                     {properties.map(p => (
                         <div className="card" key={p.id} style={{
                             borderColor: p.id === selectedPropertyId ? 'var(--accent-primary)' : undefined,
@@ -197,6 +243,88 @@ export default function SettingsPage() {
                     ))}
                 </div>
             )}
+
+            <div style={{ borderBottom: '2px solid var(--border-primary)', margin: '40px 0 30px' }}></div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 32, paddingBottom: 60 }}>
+                {categories.map((category, idx) => (
+                    <div key={idx}>
+                        <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
+                            {category.title}
+                        </h2>
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16
+                        }}>
+                            {category.items.map(item => (
+                                <div
+                                    key={item.id}
+                                    onClick={() => handleItemClick(item.id, item.label)}
+                                    style={{
+                                        background: 'var(--bg-card)',
+                                        border: '1px solid var(--border-primary)',
+                                        borderRadius: 8,
+                                        padding: '20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 16,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                                    }}
+                                    className="hover-card"
+                                >
+                                    <div style={{
+                                        width: 40, height: 40, borderRadius: 8,
+                                        background: 'var(--bg-secondary)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: 'var(--text-muted)'
+                                    }}>
+                                        <item.icon size={20} strokeWidth={1.5} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: 2 }}>{item.label}</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.desc}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <PropertySettingsDrawer
+                isOpen={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+            />
+
+            {/* Placeholder Modal for non-functional settings */}
+            {placeholderModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1100,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+                }} onClick={() => setPlaceholderModal(null)}>
+                    <div style={{
+                        background: 'var(--bg-card)', width: '100%', maxWidth: 400,
+                        borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                        animation: 'fadeIn 0.2s', padding: 24, textAlign: 'center'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-secondary)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                            <Settings size={32} />
+                        </div>
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, marginBottom: 8 }}>{placeholderModal}</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: 24 }}>
+                            This configuration section is currently under development. Detailed settings for <strong>{placeholderModal.toLowerCase()}</strong> will be available in the upcoming release.
+                        </p>
+                        <button onClick={() => setPlaceholderModal(null)} className="btn btn-primary" style={{ width: '100%' }}>
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                .hover-card:hover { border-color: var(--accent-primary) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important; }
+            `}</style>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, ArrowLeft, RefreshCw, X } from 'lucide-react';
-import { roomApi, tenantApi, bookingApi } from '../lib/api';
+import { roomApi, tenantApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,7 +32,7 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
         Promise.all([
             roomApi.get(selectedPropertyId, roomId),
             tenantApi.list(selectedPropertyId, { room: roomId }),
-            bookingApi.list(selectedPropertyId, { room: roomId })
+            tenantApi.list(selectedPropertyId, { room: roomId, is_booking: true })
         ]).then(([roomRes, tenantsRes, bookingsRes]) => {
             const data = roomRes.data;
             setRoom(data);

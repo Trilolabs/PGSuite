@@ -33,7 +33,7 @@ export default function TenantsPage() {
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [kycFilter, setKycFilter] = useState('');
     const [genderFilter, setGenderFilter] = useState('');
     const [stayTypeFilter, setStayTypeFilter] = useState('');
@@ -43,27 +43,30 @@ export default function TenantsPage() {
     useEffect(() => {
         if (!selectedPropertyId) { setLoading(false); return; }
         setLoading(true);
-        const params: any = {};
-        if (searchQuery) params.search = searchQuery;
-        if (statusFilter) params.status = statusFilter;
-        if (kycFilter) params.kyc_status = kycFilter;
-        if (genderFilter) params.gender = genderFilter;
-        tenantApi.list(selectedPropertyId, params)
+        tenantApi.list(selectedPropertyId, { is_booking: false })
             .then((res) => setTenants(res.data.results || res.data || []))
             .catch(() => setTenants([]))
             .finally(() => setLoading(false));
-    }, [selectedPropertyId, searchQuery, statusFilter, kycFilter, genderFilter]);
+    }, [selectedPropertyId]);
+
+    const filteredTenants = tenants.filter(t => {
+        const matchSearch = !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.phone.includes(searchQuery);
+        const matchStatus = statusFilter === 'all' || t.status === statusFilter;
+        const matchKyc = !kycFilter || t.kyc_status === kycFilter;
+        const matchGender = !genderFilter || t.gender === genderFilter;
+        return matchSearch && matchStatus && matchKyc && matchGender;
+    });
 
     const totalTenants = tenants.length;
     const activeTenants = tenants.filter(t => t.status === 'active').length;
     const underNotice = tenants.filter(t => t.status === 'under_notice').length;
 
     const statCards = [
-        { count: totalTenants, label: 'Total Tenants', color: '#3b82f6', icon: '👤' },
-        { count: activeTenants, label: 'Active Tenants', color: '#22c55e', icon: '🟢' },
-        { count: underNotice, label: 'Under Notice', color: '#f59e0b', icon: '⚠️' },
-        { count: 0, label: 'Joining Requests', color: '#ef4444', icon: '📩' },
-        { count: 0, label: 'Not on App', color: '#ef4444', icon: '📱' },
+        { count: totalTenants, label: 'Total Tenants', color: '#3b82f6', icon: '👤', filterValue: 'all' },
+        { count: activeTenants, label: 'Active Tenants', color: '#22c55e', icon: '🟢', filterValue: 'active' },
+        { count: underNotice, label: 'Under Notice', color: '#f59e0b', icon: '⚠️', filterValue: 'under_notice' },
+        { count: tenants.filter(t => t.status === 'checked_out').length, label: 'Checked Out', color: '#64748b', icon: '🔴', filterValue: 'checked_out' },
+        { count: 0, label: 'Not on App', color: '#ef4444', icon: '📱', filterValue: 'not_on_app' },
     ];
 
     return (
@@ -83,20 +86,26 @@ export default function TenantsPage() {
                 display: 'flex', gap: 0, overflowX: 'auto', marginBottom: 20,
                 scrollbarWidth: 'thin',
             }}>
-                {statCards.map((s, i) => (
-                    <div key={i} style={{
-                        minWidth: 140, padding: '16px 20px',
-                        border: '1px solid var(--border-primary)',
-                        borderRight: i < statCards.length - 1 ? 'none' : '1px solid var(--border-primary)',
-                        borderRadius: i === 0 ? '10px 0 0 10px' : i === statCards.length - 1 ? '0 10px 10px 0' : 0,
-                        background: 'var(--bg-card)', cursor: 'pointer', transition: 'background 0.2s',
-                    }} className="hover-card">
-                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, marginBottom: 2 }}>{s.count}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {s.icon} {s.label}
+                {statCards.map((s, i) => {
+                    const isActive = statusFilter === s.filterValue;
+                    return (
+                        <div key={i}
+                            onClick={() => setStatusFilter(s.filterValue)}
+                            style={{
+                                minWidth: 140, padding: '16px 20px',
+                                border: '1px solid var(--border-primary)',
+                                borderRight: i < statCards.length - 1 ? 'none' : '1px solid var(--border-primary)',
+                                borderRadius: i === 0 ? '10px 0 0 10px' : i === statCards.length - 1 ? '0 10px 10px 0' : 0,
+                                background: isActive ? 'var(--bg-secondary)' : 'var(--bg-card)',
+                                cursor: 'pointer', transition: 'background 0.2s',
+                            }} className="hover-card">
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, marginBottom: 2 }}>{s.count}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {s.icon} {s.label}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Search + Filters */}
@@ -113,7 +122,7 @@ export default function TenantsPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <select className="form-select" style={{ width: 140, fontSize: '0.8rem' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                        <option value="">Tenant Status ▾</option>
+                        <option value="all">Tenant Status ▾</option>
                         <option value="active">Active</option>
                         <option value="under_notice">Under Notice</option>
                         <option value="checked_out">Checked Out</option>
@@ -140,12 +149,12 @@ export default function TenantsPage() {
 
             {/* Results Count */}
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                {tenants.length} Results Found
+                {filteredTenants.length} Results Found
             </div>
 
             {loading ? (
                 <div className="page-loading"><div className="spinner"></div></div>
-            ) : tenants.length === 0 ? (
+            ) : filteredTenants.length === 0 ? (
                 <div className="card">
                     <div className="empty-state">
                         <Users size={48} />
@@ -173,7 +182,7 @@ export default function TenantsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {tenants.map((t) => (
+                            {filteredTenants.map((t) => (
                                 <tr key={t.id} onClick={() => navigate(`/tenants/${t.id}`)} style={{ cursor: 'pointer' }}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

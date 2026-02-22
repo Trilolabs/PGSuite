@@ -22,6 +22,12 @@ urlpatterns = [
     path('properties/<uuid:property_pk>/tenants/<uuid:pk>/passbook/',
          views.TenantViewSet.as_view({'get': 'passbook'}),
          name='tenant-passbook'),
+    path('properties/<uuid:property_pk>/tenants/<uuid:pk>/accept-booking/',
+         views.TenantViewSet.as_view({'post': 'accept_booking'}),
+         name='tenant-accept-booking'),
+    path('properties/<uuid:property_pk>/tenants/<uuid:pk>/cancel-booking/',
+         views.TenantViewSet.as_view({'post': 'cancel_booking'}),
+         name='tenant-cancel-booking'),
 
     # Documents & Agreements (nested under tenant)
     path('tenants/<uuid:tenant_pk>/documents/',
@@ -47,20 +53,6 @@ urlpatterns = [
     path('properties/<uuid:property_pk>/old-tenants/<uuid:pk>/refund-deposit/',
          views.OldTenantViewSet.as_view({'post': 'refund_deposit'}),
          name='old-tenant-refund'),
-
-    # Bookings
-    path('properties/<uuid:property_pk>/bookings/',
-         views.BookingViewSet.as_view({'get': 'list', 'post': 'create'}),
-         name='bookings'),
-    path('properties/<uuid:property_pk>/bookings/<uuid:pk>/',
-         views.BookingViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
-         name='booking-detail'),
-    path('properties/<uuid:property_pk>/bookings/<uuid:pk>/convert/',
-         views.BookingViewSet.as_view({'post': 'convert'}),
-         name='booking-convert'),
-    path('properties/<uuid:property_pk>/bookings/<uuid:pk>/cancel/',
-         views.BookingViewSet.as_view({'post': 'cancel'}),
-         name='booking-cancel'),
 
     # Leads
     path('properties/<uuid:property_pk>/leads/',

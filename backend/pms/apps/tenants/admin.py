@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tenant, OldTenant, Booking, Lead, Document, Agreement, FoodAttendance
+from .models import Tenant, OldTenant, Lead, Document, Agreement, FoodAttendance
 
 
 @admin.register(Tenant)
@@ -13,13 +13,6 @@ class TenantAdmin(admin.ModelAdmin):
 class OldTenantAdmin(admin.ModelAdmin):
     list_display = ['name', 'phone', 'room_number', 'move_in', 'move_out', 'settlement_status']
     list_filter = ['property', 'settlement_status']
-
-
-@admin.register(Booking)
-class BookingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'phone', 'property', 'move_in_date', 'token_amount', 'status']
-    list_filter = ['property', 'status']
-
 
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):

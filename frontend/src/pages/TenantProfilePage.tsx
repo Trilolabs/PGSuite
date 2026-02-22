@@ -30,6 +30,11 @@ export default function TenantProfilePage() {
     const [editForm, setEditForm] = useState<any>({});
     const [saving, setSaving] = useState(false);
 
+    // Checkout Modal State
+    const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+    const [checkoutReason, setCheckoutReason] = useState('');
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
+
     useEffect(() => {
         if (selectedPropertyId && id) {
             fetchTenantData();
@@ -75,10 +80,7 @@ export default function TenantProfilePage() {
                     fetchTenantData();
                 }
             } else if (action === 'checkout') {
-                if (window.confirm('Are you sure you want to check out this tenant?')) {
-                    await tenantApi.checkout(selectedPropertyId, id);
-                    navigate('/tenants');
-                }
+                setShowCheckoutModal(true);
             } else if (action === 'edit') {
                 setIsEditing(true);
                 setActiveTab('profile'); // Force profile tab for editing
@@ -95,6 +97,22 @@ export default function TenantProfilePage() {
             fetchTenantData();
         } catch (e) { console.error(e); }
         setSaving(false);
+    };
+
+    const handleCheckoutSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedPropertyId || !id) return;
+        setIsCheckingOut(true);
+        try {
+            await tenantApi.checkout(selectedPropertyId, id, { reason: checkoutReason });
+            setShowCheckoutModal(false);
+            setCheckoutReason('');
+            navigate('/old-tenants');
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsCheckingOut(false);
+        }
     };
 
     const handleAddDue = async (pkg: any) => {
@@ -840,6 +858,65 @@ export default function TenantProfilePage() {
                     )}
                 </div>
             </div>
+
+            {/* Checkout Modal */}
+            {showCheckoutModal && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        background: 'var(--bg-card)', width: '100%', maxWidth: 400,
+                        borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                    }}>
+                        <div style={{
+                            padding: '16px 20px', borderBottom: '1px solid var(--border-primary)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                        }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Checkout Tenant</h3>
+                            <button onClick={() => setShowCheckoutModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                <CloseIcon size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCheckoutSubmit}>
+                            <div style={{ padding: 20 }}>
+                                <div className="form-group" style={{ marginBottom: 16 }}>
+                                    <label>Reason for Checkout</label>
+                                    <select
+                                        className="form-control"
+                                        value={checkoutReason}
+                                        onChange={(e) => setCheckoutReason(e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Select a reason</option>
+                                        <option value="move_out">Normal Move-out</option>
+                                        <option value="eviction">Eviction (Rules violated)</option>
+                                        <option value="dues_unpaid">Eviction (Unpaid Dues)</option>
+                                        <option value="job_change">Job / College Change</option>
+                                        <option value="left_without_notice">Left without Notice</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                                    This action will free up the assigned bed and move the tenant to the Old Tenants archieve. Final dues can be settled there.
+                                </p>
+                            </div>
+
+                            <div style={{
+                                padding: '16px 20px', borderTop: '1px solid var(--border-primary)',
+                                display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--bg-secondary)'
+                            }}>
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowCheckoutModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={isCheckingOut || !checkoutReason}>
+                                    {isCheckingOut ? 'Checking out...' : 'Confirm Checkout'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

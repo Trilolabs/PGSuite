@@ -93,6 +93,8 @@ export const tenantApi = {
     passbook: (propertyId: string, id: string) => api.get(`/properties/${propertyId}/tenants/${id}/passbook/`),
     documents: (id: string) => api.get(`/tenants/${id}/documents/`),
     uploadDocument: (id: string, data: FormData) => api.post(`/tenants/${id}/documents/`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    cancelBooking: (propertyId: string, id: string, data?: any) => api.post(`/properties/${propertyId}/tenants/${id}/cancel-booking/`, data),
+    acceptBooking: (propertyId: string, id: string) => api.post(`/properties/${propertyId}/tenants/${id}/accept-booking/`),
 };
 
 // ===================== Financials =====================
@@ -130,13 +132,7 @@ export const dashboardApi = {
     overview: () => api.get('/dashboard/'),
 };
 
-// ===================== Bookings & Leads =====================
-export const bookingApi = {
-    list: (propertyId: string, params?: any) => api.get(`/properties/${propertyId}/bookings/`, { params }),
-    create: (propertyId: string, data: any) => api.post(`/properties/${propertyId}/bookings/`, data),
-    convert: (propertyId: string, id: string) => api.post(`/properties/${propertyId}/bookings/${id}/convert/`),
-};
-
+// ===================== Leads =====================
 export const leadApi = {
     list: (propertyId: string, params?: any) => api.get(`/properties/${propertyId}/leads/`, { params }),
     create: (propertyId: string, data: any) => api.post(`/properties/${propertyId}/leads/`, data),
