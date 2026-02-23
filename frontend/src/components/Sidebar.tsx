@@ -13,7 +13,7 @@ const navItems = [
     {
         section: 'Overview',
         items: [
-            { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { to: '/home', icon: LayoutDashboard, label: 'Home' },
         ],
     },
     {

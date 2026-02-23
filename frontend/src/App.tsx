@@ -4,7 +4,7 @@ import { useAuthStore } from './stores/authStore';
 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
+import HomePage from './pages/HomePage';
 import TenantsPage from './pages/TenantsPage';
 import AddTenantPage from './pages/AddTenantPage';
 import TenantProfilePage from './pages/TenantProfilePage';
@@ -51,7 +51,8 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/dashboard" element={<Navigate to="/home" replace />} />
 
           {/* People */}
           <Route path="/tenants" element={<TenantsPage />} />
@@ -85,7 +86,7 @@ function App() {
         </Route>
 
         {/* Default redirect */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </BrowserRouter>
   );

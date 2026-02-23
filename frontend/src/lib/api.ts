@@ -129,7 +129,7 @@ export const duesPackageApi = {
 
 // ===================== Dashboard =====================
 export const dashboardApi = {
-    overview: () => api.get('/dashboard/'),
+    overview: () => api.get('/dashboard/dashboard/'),
 };
 
 // ===================== Leads =====================
@@ -145,4 +145,10 @@ export const complaintApi = {
     create: (propertyId: string, data: any) => api.post(`/properties/${propertyId}/complaints/`, data),
     assign: (propertyId: string, id: string, data: any) => api.post(`/properties/${propertyId}/complaints/${id}/assign/`, data),
     resolve: (propertyId: string, id: string, data?: any) => api.post(`/properties/${propertyId}/complaints/${id}/resolve/`, data),
+};
+
+// ===================== Reports =====================
+export const reportsApi = {
+    generate: (data: any) => api.post('/reports/generate/', data),
+    getPastReports: (reportType: string) => api.get('/reports/past/', { params: { type: reportType } }),
 };
