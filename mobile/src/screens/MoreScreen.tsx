@@ -15,6 +15,12 @@ const menuItems = [
   { label: 'Electricity', icon: '⚡', screen: 'Electricity' },
   { label: 'Banks', icon: '🏦', screen: 'Banks' },
   { label: 'WhatsApp', icon: '💬', screen: 'WhatsApp' },
+  { label: 'Tasks', icon: '📝', screen: 'Tasks' },
+  { label: 'Listings', icon: '🌐', screen: 'Listings' },
+  { label: 'Reports', icon: '📊', screen: 'Reports' },
+  { label: 'Reviews', icon: '⭐', screen: 'Reviews' },
+  { label: 'Complaints', icon: '🔔', screen: 'Complaints' },
+  { label: 'Settings', icon: '⚙️', screen: 'Settings' },
 ];
 
 export default function MoreScreen({ navigation }: any) {
