@@ -4,7 +4,7 @@ import {
     Target, UsersRound, IndianRupee, Receipt, CreditCard,
     Wallet, Building2, DoorOpen, UtensilsCrossed, AlertTriangle,
     Package, Zap, Landmark, FileBarChart, MessageCircle,
-    Settings, LogOut,
+    Settings, LogOut, Star, ClipboardList, Globe,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { usePropertyStore } from '../stores/propertyStore';
@@ -42,15 +42,18 @@ const navItems = [
             { to: '/rooms', icon: DoorOpen, label: 'Rooms' },
             { to: '/food', icon: UtensilsCrossed, label: 'Food' },
             { to: '/complaints', icon: AlertTriangle, label: 'Complaints' },
-            { to: '/assets', icon: Package, label: 'Assets' },
+            { to: '/reviews', icon: Star, label: 'Reviews' },
         ],
     },
     {
-        section: 'Utilities',
+        section: '',
         items: [
+            { to: '/tasks', icon: ClipboardList, label: 'Tasks' },
+            { to: '/reports', icon: FileBarChart, label: 'Reports' },
+            { to: '/listings', icon: Globe, label: 'Listings' },
             { to: '/electricity', icon: Zap, label: 'Electricity' },
             { to: '/banks', icon: Landmark, label: 'Banks' },
-            { to: '/reports', icon: FileBarChart, label: 'Reports' },
+            { to: '/assets', icon: Package, label: 'Assets' },
             { to: '/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
         ],
     },

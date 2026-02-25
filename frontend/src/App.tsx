@@ -24,6 +24,9 @@ import ElectricityPage from './pages/ElectricityPage';
 import BanksPage from './pages/BanksPage';
 import ReportsPage from './pages/ReportsPage';
 import WhatsAppPage from './pages/WhatsAppPage';
+import ReviewsPage from './pages/ReviewsPage';
+import TasksPage from './pages/TasksPage';
+import ListingsPage from './pages/ListingsPage';
 import SettingsPage from './pages/SettingsPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -73,12 +76,15 @@ function App() {
           <Route path="/rooms" element={<RoomsPage />} />
           <Route path="/food" element={<FoodPage />} />
           <Route path="/complaints" element={<ComplaintsPage />} />
-          <Route path="/assets" element={<AssetsPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
 
           {/* Utilities */}
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/listings" element={<ListingsPage />} />
           <Route path="/electricity" element={<ElectricityPage />} />
           <Route path="/banks" element={<BanksPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/assets" element={<AssetsPage />} />
           <Route path="/whatsapp" element={<WhatsAppPage />} />
 
           {/* Settings */}

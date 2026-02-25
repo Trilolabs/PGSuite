@@ -292,3 +292,37 @@ class FoodMenu(UUIDModel):
 
     def __str__(self):
         return f'{self.get_meal_type_display()} - Day {self.day_of_week}'
+
+
+# ======================== LISTING ========================
+
+class Listing(UUIDModel):
+    STATUS_CHOICES = [
+        ('listed', 'Listed'), ('unlisted', 'Unlisted'), ('draft', 'Draft'),
+    ]
+
+    property = models.OneToOneField(Property, on_delete=models.CASCADE, related_name='listing')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unlisted')
+    description = models.TextField(blank=True)
+    highlights = models.JSONField(default=list, blank=True)
+    photos = models.JSONField(default=list, blank=True)
+    amenities = models.JSONField(default=list, blank=True)
+    rules = models.JSONField(default=list, blank=True)
+    video_tour_url = models.URLField(blank=True)
+    contact_phone = models.CharField(max_length=20, blank=True)
+    contact_email = models.EmailField(blank=True)
+    website_slug = models.SlugField(max_length=100, blank=True, unique=True, null=True)
+    min_rent = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    max_rent = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    views_count = models.PositiveIntegerField(default=0)
+    enquiries_count = models.PositiveIntegerField(default=0)
+    is_featured = models.BooleanField(default=False)
+    listing_start = models.DateField(null=True, blank=True)
+    listing_end = models.DateField(null=True, blank=True)
+
+    class Meta:
+        app_label = 'properties'
+        db_table = 'listings'
+
+    def __str__(self):
+        return f'Listing: {self.property.name} ({self.status})'
