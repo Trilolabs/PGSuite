@@ -281,6 +281,8 @@ class LeadViewSet(viewsets.ModelViewSet):
             email=lead.email,
             move_in=lead.expected_move_in or date.today(),
             booked_by=str(request.user),
+            status='booking_pending',
+            rent=0,  # Required by model, can be updated later
         )
         lead.status = 'converted'
         lead.save(update_fields=['status'])

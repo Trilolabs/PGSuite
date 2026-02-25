@@ -136,6 +136,8 @@ export const dashboardApi = {
 export const leadApi = {
     list: (propertyId: string, params?: any) => api.get(`/properties/${propertyId}/leads/`, { params }),
     create: (propertyId: string, data: any) => api.post(`/properties/${propertyId}/leads/`, data),
+    update: (propertyId: string, id: string, data: any) => api.patch(`/properties/${propertyId}/leads/${id}/`, data),
+    convertBooking: (propertyId: string, id: string) => api.post(`/properties/${propertyId}/leads/${id}/convert-booking/`),
     stats: (propertyId: string) => api.get(`/properties/${propertyId}/leads/stats/`),
 };
 
