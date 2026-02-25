@@ -8,13 +8,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from pms.core.permissions import IsPropertyManager, IsAdmin
 from .models import (
     Property, PropertySettings, Floor, Room, Bed,
-    Staff, BankAccount, Asset, FoodMenu,
+    Staff, BankAccount, Asset, FoodMenu, Listing,
 )
 from .serializers import (
     PropertyListSerializer, PropertyDetailSerializer, PropertyCreateSerializer,
     PropertySettingsSerializer, FloorSerializer,
     RoomListSerializer, RoomCreateSerializer, BedSerializer,
     StaffSerializer, BankAccountSerializer, AssetSerializer, FoodMenuSerializer,
+    ListingSerializer,
 )
 
 
@@ -222,3 +223,57 @@ class FoodMenuViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(property_id=self.kwargs['property_pk'])
+
+
+class ListingViewSet(viewsets.ModelViewSet):
+    """Manage property listings for the public website."""
+    serializer_class = ListingSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'is_featured']
+    search_fields = ['property__name', 'property__city']
+
+    def get_queryset(self):
+        return Listing.objects.filter(
+            property__user=self.request.user
+        ).select_related('property')
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    @action(detail=True, methods=['post'])
+    def toggle_status(self, request, pk=None):
+        listing = self.get_object()
+        if listing.status == 'listed':
+            listing.status = 'unlisted'
+        else:
+            listing.status = 'listed'
+        listing.save(update_fields=['status'])
+        return Response(ListingSerializer(listing).data)
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        qs = self.get_queryset()
+        from django.db.models import Sum
+        return Response({
+            'total': qs.count(),
+            'listed': qs.filter(status='listed').count(),
+            'unlisted': qs.filter(status='unlisted').count(),
+            'draft': qs.filter(status='draft').count(),
+            'total_views': qs.aggregate(v=Sum('views_count'))['v'] or 0,
+            'total_enquiries': qs.aggregate(e=Sum('enquiries_count'))['e'] or 0,
+        })
+
+    @action(detail=False, methods=['post'])
+    def auto_create(self, request):
+        """Auto-create listings for all properties that don't have one."""
+        properties = Property.objects.filter(user=request.user).exclude(listing__isnull=False)
+        created = []
+        for prop in properties:
+            listing = Listing.objects.create(
+                property=prop,
+                status='unlisted',
+                contact_email=request.user.email,
+            )
+            created.append(listing.id)
+        return Response({'created': len(created), 'listing_ids': created})

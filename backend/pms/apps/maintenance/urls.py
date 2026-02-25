@@ -35,4 +35,26 @@ urlpatterns = [
     path('properties/<uuid:property_pk>/reviews/summary/',
          views.ReviewViewSet.as_view({'get': 'summary'}),
          name='review-summary'),
+
+    # Task Templates
+    path('properties/<uuid:property_pk>/task-templates/',
+         views.TaskTemplateViewSet.as_view({'get': 'list', 'post': 'create'}),
+         name='task-templates'),
+    path('properties/<uuid:property_pk>/task-templates/<uuid:pk>/',
+         views.TaskTemplateViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
+         name='task-template-detail'),
+
+    # Tasks
+    path('properties/<uuid:property_pk>/tasks/',
+         views.TaskViewSet.as_view({'get': 'list', 'post': 'create'}),
+         name='tasks'),
+    path('properties/<uuid:property_pk>/tasks/stats/',
+         views.TaskViewSet.as_view({'get': 'stats'}),
+         name='task-stats'),
+    path('properties/<uuid:property_pk>/tasks/<uuid:pk>/',
+         views.TaskViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}),
+         name='task-detail'),
+    path('properties/<uuid:property_pk>/tasks/<uuid:pk>/complete/',
+         views.TaskViewSet.as_view({'post': 'complete'}),
+         name='task-complete'),
 ]

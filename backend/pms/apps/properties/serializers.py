@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from .models import (
     Property, PropertySettings, Floor, Room, Bed,
-    Staff, BankAccount, Asset, FoodMenu,
+    Staff, BankAccount, Asset, FoodMenu, Listing,
 )
 
 
@@ -244,3 +244,25 @@ class FoodMenuSerializer(serializers.ModelSerializer):
         model = FoodMenu
         fields = '__all__'
         read_only_fields = ['id', 'property', 'created_at', 'updated_at']
+
+
+# ======================== LISTING ========================
+
+class ListingSerializer(serializers.ModelSerializer):
+    property_name = serializers.CharField(source='property.name', read_only=True)
+    property_code = serializers.CharField(source='property.code', read_only=True)
+    property_type = serializers.CharField(source='property.type', read_only=True)
+    property_gender = serializers.CharField(source='property.gender', read_only=True)
+    property_city = serializers.CharField(source='property.city', read_only=True)
+    total_rooms = serializers.IntegerField(source='property.total_rooms', read_only=True)
+    total_beds = serializers.IntegerField(source='property.total_beds', read_only=True)
+    occupied_beds = serializers.IntegerField(source='property.occupied_beds', read_only=True)
+    vacant_beds = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Listing
+        fields = '__all__'
+        read_only_fields = ['id', 'views_count', 'enquiries_count', 'created_at', 'updated_at']
+
+    def get_vacant_beds(self, obj):
+        return obj.property.total_beds - obj.property.occupied_beds
