@@ -3,25 +3,36 @@
 ## Cursor Cloud specific instructions
 
 ### Project overview
-PG Dashboard — a full-stack Property Management System (PMS) for PG/hostel accommodations. Backend is Django REST Framework with PostgreSQL; frontend is React 19 + TypeScript + Vite.
+Full-stack Property Management System (PMS): Django REST backend + React/Vite frontend. See `README.md` for tech stack.
+
+### Services
+
+| Service | Required | Notes |
+|---------|----------|-------|
+| Backend (Django) | Yes | API on port 8001 |
+| Frontend (React/Vite) | Yes | Dev server on port 3000, proxies `/api` to backend |
+| PostgreSQL | For dev | Test settings use SQLite (no PG needed for tests) |
+| Redis | Optional | Used by Celery; not required for core dev/test |
 
 ### Backend
-- Python venv lives at `backend/venv/`. Activate with `source backend/venv/bin/activate`.
-- Dependencies: `pip install -r backend/requirements.txt`
-- **Test settings** (`pms.settings.test`) use SQLite — no PostgreSQL required for running the dev server, migrations, or tests locally.
-- Run dev server: `DJANGO_SETTINGS_MODULE=pms.settings.test python manage.py runserver 8001` (from `backend/`)
-- Run Django checks: `DJANGO_SETTINGS_MODULE=pms.settings.test python manage.py check`
-- Lint: `ruff check pms/` (from `backend/`)
-- Migrations: `DJANGO_SETTINGS_MODULE=pms.settings.test python manage.py makemigrations && python manage.py migrate`
-- pytest.ini is at `backend/pytest.ini`; existing test files have pre-existing collection errors (module-level DB queries).
+
+- **Virtualenv**: `backend/venv` (Python 3.12). Activate with `source backend/venv/bin/activate`.
+- **Run with test settings (SQLite, no PG)**: `DJANGO_SETTINGS_MODULE=pms.settings.test python manage.py runserver 8001` from `backend/`.
+- **Run with dev settings (needs PG)**: `DJANGO_SETTINGS_MODULE=pms.settings.development python manage.py runserver 8001` from `backend/`.
+- **Lint**: `ruff check pms/` from `backend/`. Pre-existing lint warnings exist in non-maintenance apps.
+- **Tests**: `DJANGO_SETTINGS_MODULE=pms.settings.test python -m pytest` from `backend/`. Existing test files (`test_room.py`, `test_occupancy_sync.py`, `test_bed_recreation.py`) have pre-existing collection errors (module-level DB access without `django_db` mark).
+- **Django checks**: `DJANGO_SETTINGS_MODULE=pms.settings.test python manage.py check` from `backend/`.
+- **Migrations**: `DJANGO_SETTINGS_MODULE=pms.settings.test python manage.py makemigrations && python manage.py migrate` from `backend/`.
 
 ### Frontend
-- Uses npm (lockfile: `package-lock.json`).
-- `npm install` then `npm run dev` (from `frontend/`).
-- Lint: `npm run lint` (from `frontend/`). Pre-existing ESLint/TS errors exist in the codebase.
-- Build: `npm run build` — currently fails due to pre-existing TS error in `HomeSummaryBar.tsx`.
 
-### Key caveats
-- The development settings (`pms.settings.development`) require a running PostgreSQL instance. Use `pms.settings.test` for local dev without external dependencies.
-- The `docker/docker-compose.yml` provides PostgreSQL + Redis if needed, but is not required when using test settings.
-- The maintenance app URL prefix is `/api/v1/maintenance/` — all endpoints are property-scoped: `/api/v1/maintenance/properties/<uuid:property_pk>/...`.
+- **Package manager**: npm (lockfile: `package-lock.json`).
+- **Lint**: `npx eslint .` from `frontend/`. Pre-existing lint errors exist (mostly `no-explicit-any`).
+- **Type check**: `npx tsc -b` from `frontend/`. One pre-existing error (unused import in `HomeSummaryBar.tsx`).
+- **Dev server**: `npm run dev` from `frontend/` (port 3000).
+- **Build**: `npm run build` from `frontend/`.
+
+### Gotchas
+- The backend `manage.py` defaults to `pms.settings.development` which requires PostgreSQL. Use `pms.settings.test` for SQLite-based development without PG.
+- `pytest.ini` uses `pms.settings.development` by default; override with `DJANGO_SETTINGS_MODULE=pms.settings.test` env var when PG is unavailable.
+- JWT auth required for all API endpoints. Login at `POST /api/v1/auth/login/` with `{"email":"...","password":"..."}`.
