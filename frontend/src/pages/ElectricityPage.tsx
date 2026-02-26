@@ -11,7 +11,7 @@ interface MeterReading {
     current_reading: string;
     units_consumed: number;
     rate_per_unit: string;
-    amount: string;
+    total_amount: string;
     reading_date: string;
 }
 
@@ -28,8 +28,8 @@ export default function ElectricityPage() {
             .finally(() => setLoading(false));
     }, [selectedPropertyId]);
 
-    const totalUnits = readings.reduce((s, r) => s + (r.units_consumed || 0), 0);
-    const totalAmount = readings.reduce((s, r) => s + Number(r.amount || 0), 0);
+    const totalUnits = readings.reduce((s, r) => s + Number(r.units_consumed || 0), 0);
+    const totalAmount = readings.reduce((s, r) => s + Number(r.total_amount || 0), 0);
 
     return (
         <div className="page-container">
@@ -90,7 +90,7 @@ export default function ElectricityPage() {
                                     <td>{r.current_reading}</td>
                                     <td style={{ fontWeight: 600 }}>{r.units_consumed}</td>
                                     <td>₹{r.rate_per_unit}/unit</td>
-                                    <td style={{ fontWeight: 600, color: 'var(--accent-warning)' }}>₹{Number(r.amount).toLocaleString('en-IN')}</td>
+                                    <td style={{ fontWeight: 600, color: 'var(--accent-warning)' }}>₹{Number(r.total_amount).toLocaleString('en-IN')}</td>
                                     <td>{new Date(r.reading_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
                                 </tr>
                             ))}
