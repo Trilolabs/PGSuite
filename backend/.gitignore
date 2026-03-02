@@ -2,3 +2,9 @@ venv/
 __pycache__/
 .env
 .env.example
+pms/apps/maintenance/__pycache__/
+pms/apps/properties/__pycache__/
+test_db.sqlite3
+pms/apps/maintenance/migrations/__pycache__/
+pms/apps/properties/migrations/__pycache__/
+test_db.sqlite3
