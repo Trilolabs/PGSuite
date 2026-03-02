@@ -31,11 +31,17 @@ class DueCreateSerializer(serializers.ModelSerializer):
 
 class PaymentSerializer(serializers.ModelSerializer):
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+    received_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
         fields = '__all__'
         read_only_fields = ['id', 'property', 'received_by', 'created_at', 'updated_at']
+
+    def get_received_by_name(self, obj):
+        if obj.received_by:
+            return obj.received_by.name or obj.received_by.email
+        return None
 
 
 class PaymentCreateSerializer(serializers.ModelSerializer):

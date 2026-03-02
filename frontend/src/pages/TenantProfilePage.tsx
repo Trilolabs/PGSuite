@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { usePropertyStore } from '../stores/propertyStore';
 import { tenantApi, duesPackageApi, duesApi } from '../lib/api';
 import {
@@ -10,6 +10,7 @@ import {
 export default function TenantProfilePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { selectedPropertyId } = usePropertyStore();
 
     const [tenant, setTenant] = useState<any>(null);
@@ -17,8 +18,9 @@ export default function TenantProfilePage() {
     const [duesPackages, setDuesPackages] = useState<any[]>([]);
 
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('profile');
-    const [passbookFilter, setPassbookFilter] = useState<'pdf' | 'dues' | 'collections' | 'deposit' | 'advance'>('pdf');
+    // Read tab from URL param (?tab=passbook), default to 'profile'
+    const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'profile');
+    const [passbookFilter, setPassbookFilter] = useState<'pdf' | 'dues' | 'collections' | 'deposit' | 'advance'>(() => (searchParams.get('view') as any) || 'pdf');
 
     // UI states
     const [showActions, setShowActions] = useState(false);

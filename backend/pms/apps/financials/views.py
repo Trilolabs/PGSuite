@@ -96,12 +96,34 @@ class DueViewSet(viewsets.ModelViewSet):
         month = self.request.query_params.get('month')
         year = self.request.query_params.get('year')
         due_type = self.request.query_params.get('due_type')
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        tenant_status = self.request.query_params.get('tenant_status')
+        defaulter = self.request.query_params.get('defaulter')
+
         if month and year:
             qs = qs.filter(due_date__month=month, due_date__year=year)
-            
+
+        # Date range filter on due_date
+        if date_from:
+            qs = qs.filter(due_date__gte=date_from)
+        if date_to:
+            qs = qs.filter(due_date__lte=date_to)
+
+        # Tenant status filter (active, booking_pending, checked_out)
+        if tenant_status:
+            qs = qs.filter(tenant__status=tenant_status)
+
+        # Defaulter filter
+        if defaulter:
+            if defaulter == 'rent':
+                qs = qs.filter(type__icontains='rent', status__in=['unpaid', 'partially_paid'])
+            elif defaulter == 'other':
+                qs = qs.exclude(type__icontains='rent').filter(status__in=['unpaid', 'partially_paid'])
+
         if due_type:
-            from datetime import date
-            today = date.today()
+            from datetime import date as date_cls
+            today = date_cls.today()
             if due_type == 'current':
                 qs = qs.filter(due_date__lte=today)
             elif due_type == 'future':
@@ -117,9 +139,13 @@ class DueViewSet(viewsets.ModelViewSet):
             elif due_type == 'month_deposit':
                 qs = qs.filter(due_date__month=today.month, due_date__year=today.year, type__icontains='deposit')
             else:
-                # Standard type filter (rent, electricity, late, etc)
                 qs = qs.filter(type__icontains=due_type)
         return qs
+
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get('paginate') == 'false':
+            return None
+        return super().paginate_queryset(queryset)
 
     def get_serializer_class(self):
         if self.action in ('create',):
@@ -240,14 +266,51 @@ class PaymentViewSet(viewsets.ModelViewSet):
         qs = Payment.objects.filter(property_id=self.kwargs['property_pk']).select_related('tenant')
         date_from = self.request.query_params.get('date_from')
         date_to = self.request.query_params.get('date_to')
+        due_date_from = self.request.query_params.get('due_date_from')
+        due_date_to = self.request.query_params.get('due_date_to')
         due_type = self.request.query_params.get('due_type')
+        mode = self.request.query_params.get('mode')
+        tenant_status = self.request.query_params.get('tenant_status')
+        received_by = self.request.query_params.get('received_by')
+        search = self.request.query_params.get('search')
+
+        # Date range: "Was Collected On"
         if date_from:
             qs = qs.filter(payment_date__gte=date_from)
         if date_to:
             qs = qs.filter(payment_date__lte=date_to)
+        # Date range: "Was Due On"
+        if due_date_from:
+            qs = qs.filter(due__due_date__gte=due_date_from)
+        if due_date_to:
+            qs = qs.filter(due__due_date__lte=due_date_to)
+        if mode:
+            qs = qs.filter(mode=mode)
+        if tenant_status:
+            qs = qs.filter(tenant__status=tenant_status)
+        if received_by:
+            qs = qs.filter(received_by_id=received_by)
+        if search:
+            qs = qs.filter(tenant__name__icontains=search)
         if due_type:
+            from datetime import date
+            today = date.today()
             if due_type == 'advance':
                 qs = qs.filter(advance_amount__gt=0)
+            elif due_type == 'month':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year)
+            elif due_type == 'month_dues':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year, due__isnull=False)
+            elif due_type == 'month_rent':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year, due__type__icontains='rent')
+            elif due_type == 'month_electricity':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year, due__type__icontains='electricity')
+            elif due_type == 'month_food':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year, due__type__icontains='mess')
+            elif due_type == 'month_deposit':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year, due__type__icontains='deposit')
+            elif due_type == 'month_late':
+                qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year, due__type__icontains='late')
             else:
                 qs = qs.filter(due__type__icontains=due_type)
         return qs
@@ -256,6 +319,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if self.action in ('create',):
             return PaymentCreateSerializer
         return PaymentSerializer
+
+    def paginate_queryset(self, queryset):
+        if self.request.query_params.get('paginate') == 'false':
+            return None
+        return super().paginate_queryset(queryset)
 
     def perform_create(self, serializer):
         payment = serializer.save(
@@ -291,8 +359,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
         
         # Scenario B: No specific due provided (Auto-allocate)
         else:
-            from .models import Due
-            remaining_payment = payment.amount
+            from .models import Due, Payment
+            from decimal import Decimal
+            remaining_payment = Decimal(str(payment.amount))
+            payment.amount = Decimal('0.00')
+            payment.save(update_fields=['amount'])
             
             # Fetch all open dues for this tenant, ordered by oldest first
             open_dues = Due.objects.filter(
@@ -300,29 +371,53 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 status__in=['unpaid', 'partially_paid']
             ).order_by('due_date')
 
+            first_allocation = True
+
             for due in open_dues:
                 if remaining_payment <= 0:
                     break
                 
                 required = due.amount + due.late_fine - due.paid_amount
+                allocate_amount = min(remaining_payment, required)
                 
-                if remaining_payment >= required:
-                    # Fully settle this due
-                    due.paid_amount += required
-                    due.status = 'paid'
+                if allocate_amount > 0:
+                    if first_allocation:
+                        payment.due = due
+                        payment.amount = allocate_amount
+                        payment.save(update_fields=['due', 'amount'])
+                        first_allocation = False
+                    else:
+                        Payment.objects.create(
+                            property=payment.property,
+                            tenant=payment.tenant,
+                            received_by=payment.received_by,
+                            payment_date=payment.payment_date,
+                            mode=payment.mode,
+                            reference_number=payment.reference_number,
+                            notes=payment.notes,
+                            due=due,
+                            amount=allocate_amount
+                        )
+                    
+                    due.paid_amount += allocate_amount
+                    if due.paid_amount >= due.amount + due.late_fine:
+                        due.status = 'paid'
+                    else:
+                        due.status = 'partially_paid'
                     due.save(update_fields=['paid_amount', 'status'])
-                    remaining_payment -= required
-                else:
-                    # Partially settle this due
-                    due.paid_amount += remaining_payment
-                    due.status = 'partially_paid'
-                    due.save(update_fields=['paid_amount', 'status'])
-                    remaining_payment = 0
+                    
+                    remaining_payment -= allocate_amount
             
             # If there's still money leftover, it goes to advance
             if remaining_payment > 0:
-                payment.advance_amount = remaining_payment
-                payment.save(update_fields=['advance_amount'])
+                if first_allocation:
+                    payment.amount = remaining_payment
+                    payment.advance_amount = remaining_payment
+                    payment.save(update_fields=['amount', 'advance_amount'])
+                else:
+                    payment.amount += remaining_payment
+                    payment.advance_amount = remaining_payment
+                    payment.save(update_fields=['amount', 'advance_amount'])
                 
                 tenant = payment.tenant
                 tenant.advance_balance += remaining_payment
@@ -345,38 +440,37 @@ class PaymentViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def summary(self, request, property_pk=None):
         from django.db.models import Sum, Q
-        # Base Queryset without `due_type` filter
+        from datetime import date
+        today = date.today()
+        
+        # Base Queryset
         qs = Payment.objects.filter(property_id=self.kwargs['property_pk'])
         
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
-        if date_from:
-            qs = qs.filter(payment_date__gte=date_from)
-        if date_to:
-            qs = qs.filter(payment_date__lte=date_to)
-        
+        # Overall totals
         total = qs.aggregate(t=Sum('amount'))['t'] or 0
         advance = qs.aggregate(t=Sum('advance_amount'))['t'] or 0
         
+        # Current month queryset
+        month_qs = qs.filter(payment_date__month=today.month, payment_date__year=today.year)
+        month_total = month_qs.aggregate(t=Sum('amount'))['t'] or 0
+        
+        # Month dues collection (payments linked to a due)
+        month_dues = month_qs.filter(due__isnull=False).aggregate(t=Sum('amount'))['t'] or 0
+        
+        # Month typed collections
+        month_rent = month_qs.filter(due__type__icontains='rent').aggregate(t=Sum('amount'))['t'] or 0
+        month_electricity = month_qs.filter(due__type__icontains='electricity').aggregate(t=Sum('amount'))['t'] or 0
+        month_food = month_qs.filter(due__type__icontains='mess').aggregate(t=Sum('amount'))['t'] or 0
+        month_deposit = month_qs.filter(due__type__icontains='deposit').aggregate(t=Sum('amount'))['t'] or 0
+        month_late_fine = month_qs.filter(due__type__icontains='late').aggregate(t=Sum('amount'))['t'] or 0
+        month_advance = month_qs.aggregate(t=Sum('advance_amount'))['t'] or 0
+        
+        # Overall typed totals
         rent = qs.filter(due__type__icontains='rent').aggregate(t=Sum('amount'))['t'] or 0
-        rent_adv = qs.filter(due__type__icontains='rent').aggregate(t=Sum('advance_amount'))['t'] or 0
-        rent = max(0, rent - rent_adv)
-        
         electricity = qs.filter(due__type__icontains='electricity').aggregate(t=Sum('amount'))['t'] or 0
-        elec_adv = qs.filter(due__type__icontains='electricity').aggregate(t=Sum('advance_amount'))['t'] or 0
-        electricity = max(0, electricity - elec_adv)
-        
         food = qs.filter(due__type__icontains='mess').aggregate(t=Sum('amount'))['t'] or 0
-        food_adv = qs.filter(due__type__icontains='mess').aggregate(t=Sum('advance_amount'))['t'] or 0
-        food = max(0, food - food_adv)
-        
         deposit = qs.filter(due__type__icontains='deposit').aggregate(t=Sum('amount'))['t'] or 0
-        deposit_adv = qs.filter(due__type__icontains='deposit').aggregate(t=Sum('advance_amount'))['t'] or 0
-        deposit = max(0, deposit - deposit_adv)
-        
         late_fine = qs.filter(due__type__icontains='late').aggregate(t=Sum('amount'))['t'] or 0
-        late_adv = qs.filter(due__type__icontains='late').aggregate(t=Sum('advance_amount'))['t'] or 0
-        late_fine = max(0, late_fine - late_adv)
         
         return Response({
             'total': total,
@@ -386,6 +480,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
             'food': food,
             'deposit': deposit,
             'late_fine': late_fine,
+            # Month specific
+            'month_total': month_total,
+            'month_dues': month_dues,
+            'month_rent': month_rent,
+            'month_electricity': month_electricity,
+            'month_food': month_food,
+            'month_deposit': month_deposit,
+            'month_late_fine': month_late_fine,
+            'month_advance': month_advance,
         })
 
 
