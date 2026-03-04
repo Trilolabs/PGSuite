@@ -22,71 +22,85 @@ class DashboardOverviewView(APIView):
             properties = Property.objects.filter(staff__user=user, is_active=True).distinct()
             
         property_ids = list(properties.values_list('id', flat=True))
+        
+        filter_property_id = request.query_params.get('property_id')
+        if filter_property_id and filter_property_id != 'all':
+            agg_property_ids = [filter_property_id]
+        else:
+            agg_property_ids = property_ids
+            
         today = date.today()
         month_start = today.replace(day=1)
 
         # Today's collection
         todays_collection = Payment.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             payment_date=today,
         ).aggregate(total=Sum('amount'))['total'] or 0
 
         # Monthly numbers
         monthly_collection = Payment.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             payment_date__gte=month_start,
         ).aggregate(total=Sum('amount'))['total'] or 0
 
+        from django.db.models import F, ExpressionWrapper, DecimalField
+        rem_expr = ExpressionWrapper(
+            F('amount') + F('late_fine') - F('paid_amount'), 
+            output_field=DecimalField()
+        )
+
         monthly_dues = Due.objects.filter(
-            property_id__in=property_ids,
-            due_date__gte=month_start,
+            property_id__in=agg_property_ids,
+            due_date__month=today.month,
+            due_date__year=today.year,
             status__in=['unpaid', 'partially_paid'],
-        ).aggregate(total=Sum('amount'))['total'] or 0
+        ).annotate(balance=rem_expr).aggregate(total=Sum('balance'))['total'] or 0
 
         total_dues = Due.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             status__in=['unpaid', 'partially_paid'],
-        ).aggregate(total=Sum('amount'))['total'] or 0
+        ).annotate(balance=rem_expr).aggregate(total=Sum('balance'))['total'] or 0
 
         monthly_expenses = Expense.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             date__gte=month_start,
         ).aggregate(total=Sum('amount'))['total'] or 0
 
         # Counts
         total_tenants = Tenant.objects.filter(
-            property_id__in=property_ids, status='active',
+            property_id__in=agg_property_ids, status='active',
         ).count()
 
         under_notice = Tenant.objects.filter(
-            property_id__in=property_ids, status='under_notice',
+            property_id__in=agg_property_ids, status='under_notice',
         ).count()
 
         defaulters = Tenant.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             status='active',
             dues__status='unpaid',
             dues__due_date__lt=today,
         ).distinct().count()
 
         total_deposits = Tenant.objects.filter(
-            property_id__in=property_ids, status='active',
+            property_id__in=agg_property_ids, status='active',
         ).aggregate(total=Sum('deposit'))['total'] or 0
 
         unpaid_deposits = Due.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             type='security_deposit',
             status__in=['unpaid', 'partially_paid']
-        ).aggregate(total=Sum('amount'))['total'] or 0
+        ).annotate(balance=rem_expr).aggregate(total=Sum('balance'))['total'] or 0
 
         pending_bookings = Tenant.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             status__in=['active', 'booking_pending'],
             move_in__gt=today
         ).count()
 
         active_leads = Lead.objects.filter(
-            property_id__in=property_ids,
+            property_id__in=agg_property_ids,
             status__in=['new', 'contacted', 'visit_scheduled', 'follow_up'],
         ).count()
 
@@ -101,7 +115,7 @@ class DashboardOverviewView(APIView):
             
             p_pending_dues = Due.objects.filter(
                 property_id=p_id, status__in=['unpaid', 'partially_paid']
-            ).aggregate(total=Sum('amount'))['total'] or 0
+            ).annotate(balance=rem_expr).aggregate(total=Sum('balance'))['total'] or 0
             
             p_collection = Payment.objects.filter(
                 property_id=p_id, payment_date__gte=month_start

@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { IndianRupee, Users, Lock, Wallet, FileText, AlertTriangle } from 'lucide-react';
 
 interface HomeSummaryBarProps {
     data: any;
@@ -9,51 +8,45 @@ interface HomeSummaryBarProps {
 export default function HomeSummaryBar({ data, monthName }: HomeSummaryBarProps) {
     const navigate = useNavigate();
 
+    const formatCurrency = (amount: number | string) =>
+        new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(amount));
+
     const stats = [
-        { label: "Today's Collection", value: data?.todays_collection, color: '#22c55e', link: '/collection', icon: Wallet },
-        { label: `${monthName}'s Collection`, value: data?.monthly_collection, color: '#22c55e', link: '/collection', icon: Wallet },
-        { label: `${monthName}'s Dues`, value: data?.monthly_dues, color: '#ef4444', link: '/dues', icon: FileText },
-        { label: 'Total Dues', value: data?.total_dues, color: '#ef4444', link: '/dues', icon: FileText },
-        { label: `${monthName}'s Expenses`, value: data?.monthly_expenses, color: '#f59e0b', link: '/expense', icon: IndianRupee },
-        { label: 'Rent Defaulters', value: data?.defaulters, color: '#ef4444', link: '/tenants', icon: AlertTriangle, isCount: true },
-        { label: 'Current Deposit', value: data?.total_deposits, color: '#22c55e', link: '/tenants', icon: Lock },
-        { label: 'Unpaid Deposit', value: data?.unpaid_deposits, color: '#ef4444', link: '/dues', icon: Lock },
-        { label: `${monthName}'s Profit`, value: data?.monthly_profit, color: '#eab308', link: '/reports', icon: IndianRupee },
+        { label: "Today's Collection", value: data?.todays_collection, color: '#22c55e', link: '/collection' },
+        { label: `${monthName}'s Collection`, value: data?.monthly_collection, color: '#22c55e', link: '/collection' },
+        { label: `${monthName}'s Dues`, value: data?.monthly_dues, color: '#ef4444', link: '/dues' },
+        { label: 'Total Dues', value: data?.total_dues, color: '#ef4444', link: '/dues' },
+        { label: `${monthName}'s Expenses`, value: data?.monthly_expenses, color: '#f59e0b', link: '/expense' },
+        { label: 'Rent Defaulters', value: data?.defaulters, color: '#ef4444', link: '/tenants', isCount: true },
+        { label: 'Current Deposit', value: data?.total_deposits, color: '#22c55e', link: '/tenants' },
+        { label: 'Unpaid Deposit', value: data?.unpaid_deposits, color: '#ef4444', link: '/dues' },
+        { label: `${monthName}'s Profit`, value: data?.monthly_profit, color: '#eab308', link: '/reports' },
     ];
 
     return (
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 24 }}>
             <div style={{
-                display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16,
-                scrollbarWidth: 'thin', scrollSnapType: 'x mandatory'
+                display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 16,
+                scrollbarWidth: 'none'
             }}>
                 {stats.map((stat, i) => (
                     <div key={i} style={{
-                        minWidth: 260, padding: '20px', background: 'var(--bg-card)',
-                        borderRadius: 12, border: '1px solid var(--border-primary)',
-                        cursor: 'pointer', transition: 'transform 0.2s', scrollSnapAlign: 'start',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                        cursor: 'pointer', minWidth: 160, padding: '14px 16px', borderRadius: 10,
+                        background: 'var(--bg-secondary, #1e293b)',
+                        border: '1px solid var(--border-primary, #334155)',
+                        transition: 'all 0.2s', flexShrink: 0,
                     }}
-                        className="hover-card"
                         onClick={() => navigate(stat.link)}
                     >
-                        <div>
-                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: stat.color, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                {!stat.isCount && '₹'}{(stat.value || 0).toLocaleString('en-IN')}
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                                {stat.label}
-                            </div>
+                        <div style={{ color: stat.color, fontSize: '1.15rem', fontWeight: 700, marginBottom: 4, whiteSpace: 'nowrap' }}>
+                            {stat.isCount ? '' : ''}{stat.isCount ? (stat.value || 0) : formatCurrency(stat.value || 0)}
                         </div>
-                        <div style={{ color: stat.color, opacity: 0.8, background: `${stat.color}15`, padding: 12, borderRadius: '50%' }}>
-                            <stat.icon size={26} strokeWidth={2.5} />
+                        <div style={{ color: '#94a3b8', fontSize: '0.78rem', lineHeight: 1.3 }}>
+                            {stat.label}
                         </div>
                     </div>
                 ))}
             </div>
-            {/* Minimal gradient line */}
-            <div style={{ height: 4, background: 'linear-gradient(90deg, #22c55e 0%, #3b82f6 30%, #f59e0b 60%, #ef4444 100%)', borderRadius: 4, opacity: 0.5, marginTop: -8 }} />
         </div>
     );
 }

@@ -157,19 +157,19 @@ class TenantViewSet(viewsets.ModelViewSet):
         # Combine and sort by date for ledger calculation
         ledger = []
         for d in dues:
-            ledger.append({'date': d.due_date, 'type': 'due', 'data': DueSerializer(d).data, 'amount': float(d.amount)})
+            ledger.append({'date': d.due_date, 'type': 'due', 'data': DueSerializer(d).data, 'amount': round(float(d.amount), 2)})
         for p in payments:
-            ledger.append({'date': p.payment_date, 'type': 'payment', 'data': PaymentSerializer(p).data, 'amount': float(p.amount)})
+            ledger.append({'date': p.payment_date, 'type': 'payment', 'data': PaymentSerializer(p).data, 'amount': round(float(p.amount), 2)})
             
         ledger.sort(key=lambda x: x['date'])
         
         # Calculate running balance
-        balance = 0
+        balance = 0.0
         grouped = {}
         for item in ledger:
             month_key = item['date'].strftime('%Y-%m')
             if month_key not in grouped:
-                grouped[month_key] = {'month_name': item['date'].strftime('%B %Y'), 'entries': [], 'month_total_dues': 0, 'month_total_paid': 0, 'opening_balance': balance}
+                grouped[month_key] = {'month_name': item['date'].strftime('%B %Y'), 'entries': [], 'month_total_dues': 0, 'month_total_paid': 0, 'opening_balance': round(balance, 2)}
                 
             if item['type'] == 'due':
                 balance += item['amount']
@@ -178,13 +178,27 @@ class TenantViewSet(viewsets.ModelViewSet):
                 balance -= item['amount']
                 grouped[month_key]['month_total_paid'] += item['amount']
                 
-            item['running_balance'] = balance
+            item['running_balance'] = round(balance, 2)
             grouped[month_key]['entries'].append(item)
+
+        # Round month totals
+        for g in grouped.values():
+            g['month_total_dues'] = round(g['month_total_dues'], 2)
+            g['month_total_paid'] = round(g['month_total_paid'], 2)
             
+        # total_dues = remaining unpaid balance (not original amounts)
+        remaining_dues = round(sum(
+            float(d.amount) + float(d.late_fine) - float(d.paid_amount)
+            for d in dues if d.status in ('unpaid', 'partially_paid')
+        ), 2)
+        total_paid = round(sum(float(p.amount) for p in payments), 2)
+        total_dues_original = round(sum(float(d.amount) for d in dues), 2)
+        
         return Response({
-            'total_dues': sum(d.amount for d in dues),
-            'total_paid': sum(p.amount for p in payments),
-            'net_balance': balance,
+            'total_dues': remaining_dues,
+            'total_dues_original': total_dues_original,
+            'total_paid': total_paid,
+            'net_balance': round(balance, 2),
             'ledger': list(grouped.values())
         })
 

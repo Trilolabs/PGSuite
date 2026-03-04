@@ -20,7 +20,7 @@ export default function TenantProfilePage() {
     const [loading, setLoading] = useState(true);
     // Read tab from URL param (?tab=passbook), default to 'profile'
     const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'profile');
-    const [passbookFilter, setPassbookFilter] = useState<'pdf' | 'dues' | 'collections' | 'deposit' | 'advance'>(() => (searchParams.get('view') as any) || 'pdf');
+    const [passbookFilter, setPassbookFilter] = useState<'pdf' | 'dues' | 'collections' | 'deposit' | 'advance' | 'discount'>(() => (searchParams.get('view') as any) || 'pdf');
 
     // UI states
     const [showActions, setShowActions] = useState(false);
@@ -544,30 +544,30 @@ export default function TenantProfilePage() {
                     {/* ===== PASSBOOK TAB ===== */}
                     {activeTab === 'passbook' && (
                         <div>
-                            {/* Stats Row */}
+                            {/* Stats Row — info-only, no filter switching */}
                             <div style={{
-                                display: 'flex', alignItems: 'center', gap: 32, background: 'var(--bg-card)', padding: 16, borderRadius: 10,
-                                border: '1px solid var(--border-primary)', marginBottom: 20, overflowX: 'auto',
+                                display: 'flex', alignItems: 'center', gap: 16, background: 'var(--bg-card)', padding: 16, borderRadius: 10,
+                                border: '1px solid var(--border-primary)', marginBottom: 20, overflowX: 'auto', flexWrap: 'wrap',
                             }}>
                                 {[
                                     { label: 'Tenant Ledger', value: 'PDF', filterValue: 'pdf', color: '#1e40af', isPdf: true },
                                     { label: 'Total Dues', value: passbook?.total_dues || 0, filterValue: 'dues', color: '#ef4444' },
                                     { label: 'Total Collection', value: passbook?.total_paid || 0, filterValue: 'collections', color: '#22c55e' },
                                     { label: 'Security Deposit', value: tenant.deposit || 0, filterValue: 'deposit', color: '#6366f1' },
-                                    { label: 'Advance', value: tenant.advance_balance || 0, filterValue: 'advance', color: '#6366f1' },
+                                    { label: 'Advance', value: tenant.advance_balance || 0, filterValue: 'advance', color: '#8b5cf6' },
                                     { label: 'Total Discount', value: 0, filterValue: 'discount', color: '#f59e0b' },
                                 ].map((stat, i) => {
                                     const isActive = passbookFilter === stat.filterValue;
                                     return (
-                                        <div key={i} onClick={() => setPassbookFilter(stat.filterValue as any)} style={{ cursor: 'pointer', padding: '12px 16px', borderRadius: 8, background: isActive ? `${stat.color}15` : 'transparent', border: isActive ? `1px solid ${stat.color}50` : '1px solid transparent', transition: 'all 0.2s', minWidth: 140 }}>
+                                        <div key={i} onClick={() => setPassbookFilter(stat.filterValue as any)} style={{ cursor: 'pointer', padding: '12px 16px', borderRadius: 8, background: isActive ? `${stat.color}15` : 'transparent', border: isActive ? `1px solid ${stat.color}50` : '1px solid transparent', transition: 'all 0.2s', minWidth: 120 }}>
                                             <div style={{ fontSize: stat.isPdf ? '1.1rem' : '1.2rem', fontWeight: 700, color: stat.color, marginBottom: 4, height: 24, display: 'flex', alignItems: 'center' }}>
-                                                {stat.isPdf ? stat.value : `₹${Number(stat.value).toLocaleString('en-IN')}`}
+                                                {stat.isPdf ? stat.value : `₹${Number(stat.value).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: isActive ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: isActive ? 600 : 500 }}>{stat.label}</div>
                                         </div>
                                     )
                                 })}
-                                <div style={{ borderLeft: '1px solid var(--border-primary)', paddingLeft: 32 }}>
+                                <div style={{ borderLeft: '1px solid var(--border-primary)', paddingLeft: 24 }}>
                                     <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#6b21a8', cursor: 'pointer' }} onClick={() => setShowAddDues(true)}>Add Dues</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>Add Dues</div>
                                 </div>
@@ -577,201 +577,249 @@ export default function TenantProfilePage() {
                                 <Download size={14} /> Download PDF
                             </button>
 
-                            {/* Ledger Table */}
-                            <div style={{
-                                background: '#fff', borderRadius: 8, padding: 24, color: '#1e293b',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)', minHeight: 400,
-                            }}>
-                                {/* Header */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#1e40af', color: '#fff', padding: '10px 16px', borderRadius: 6, fontSize: '0.8rem', marginBottom: 20 }}>
-                                    <div>
-                                        {tenant.property_name}
-                                        <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>{id}</div>
+                            {/* Conditional Rendering based on Filter */}
+                            {passbookFilter === 'pdf' && (
+                                <div style={{
+                                    background: 'var(--bg-card)', borderRadius: 8, padding: 24, color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-primary)', minHeight: 400,
+                                }}>
+                                    {/* Property Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--bg-primary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', padding: '10px 16px', borderRadius: 6, fontSize: '0.8rem', marginBottom: 20 }}>
+                                        <div>
+                                            {tenant.property_name}
+                                            <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>{id}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div>Property Managed by :</div>
+                                            <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Contact : -</div>
+                                        </div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div>Property Managed by :</div>
-                                        <div style={{ fontSize: '0.65rem', opacity: 0.8 }}>Contact : -</div>
-                                    </div>
-                                </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: '0.8rem', marginBottom: 20 }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{tenant.name}</div>
-                                        <div>{tenant.phone}</div>
-                                        <div>DOJ : {tenant.move_in}</div>
-                                        <div>Rent Cycle Date : 1</div>
+                                    {/* Tenant Info */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: '0.8rem', marginBottom: 20 }}>
+                                        <div>
+                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{tenant.name}</div>
+                                            <div>{tenant.phone}</div>
+                                            <div>DOJ : {tenant.move_in}</div>
+                                            <div>Rent Cycle Date : 1</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div>Place of rent : <strong>{tenant.room_number || '-'}</strong></div>
+                                            <div>Security Deposit : Rs {Number(tenant.deposit || 0).toFixed(2)}</div>
+                                            <div>Monthly Rent : Rs {Number(tenant.rent || 0).toFixed(2)}</div>
+                                        </div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div>Place of rent : <strong>{tenant.room_number || '-'}</strong></div>
-                                        <div>Security Deposit : Rs {tenant.deposit}</div>
-                                        <div>Monthly Rent : Rs {tenant.rent}</div>
-                                    </div>
-                                </div>
 
-                                {passbookFilter === 'pdf' && (
+                                    {/* Summary Box */}
                                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 120px)', border: '1px solid #e2e8f0', textAlign: 'center', fontSize: '0.75rem', borderRadius: 4, overflow: 'hidden' }}>
-                                            <div style={{ padding: 10, background: '#f8fafc' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 140px)', border: '1px solid var(--border-primary)', textAlign: 'center', fontSize: '0.75rem', borderRadius: 4, overflow: 'hidden' }}>
+                                            <div style={{ padding: 10, background: 'var(--bg-primary)' }}>
                                                 <div>Total Added Dues (+)</div>
-                                                <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.total_dues || 0}</div>
+                                                <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {Number(passbook?.total_dues_original || 0).toFixed(2)}</div>
                                             </div>
-                                            <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
+                                            <div style={{ padding: 10, background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)' }}>
                                                 <div>Total Collection (-)</div>
-                                                <div style={{ color: '#3b82f6', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.total_paid || 0}</div>
+                                                <div style={{ color: '#3b82f6', fontWeight: 600, marginTop: 4 }}>Rs {Number(passbook?.total_paid || 0).toFixed(2)}</div>
                                             </div>
-                                            <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
+                                            <div style={{ padding: 10, background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)' }}>
                                                 <div>Total Used Discount (-)</div>
-                                                <div style={{ color: '#64748b', fontWeight: 600, marginTop: 4 }}>Rs 0</div>
+                                                <div style={{ color: 'var(--text-muted)', fontWeight: 600, marginTop: 4 }}>Rs 0.00</div>
                                             </div>
-                                            <div style={{ padding: 10, background: '#f8fafc', borderLeft: '1px solid #e2e8f0' }}>
+                                            <div style={{ padding: 10, background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)' }}>
                                                 <div>Net Balance</div>
-                                                <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 4 }}>Rs {passbook?.net_balance || 0}</div>
+                                                <div style={{ color: (passbook?.net_balance || 0) > 0 ? '#ef4444' : '#22c55e', fontWeight: 600, marginTop: 4 }}>
+                                                    Rs {Number(passbook?.net_balance || 0).toFixed(2)}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                )}
 
+                                    <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#6366f1', marginBottom: 12 }}>
+                                        All transactions during {tenant.move_in} – {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </div>
 
-
-                                {/* Conditional Ledger Display */}
-                                {passbookFilter === 'pdf' ? (
-                                    <div style={{ border: '1px solid #e2e8f0', fontSize: '0.75rem', borderRadius: 8, overflow: 'hidden' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px', background: '#f1f5f9', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>
+                                    {/* Ledger Table */}
+                                    <div style={{ border: '1px solid var(--border-primary)', fontSize: '0.75rem', borderRadius: 8, overflow: 'hidden' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 80px 120px 70px', background: 'var(--bg-root)', fontWeight: 600, borderBottom: '1px solid var(--border-primary)' }}>
                                             <div style={{ padding: 10, textAlign: 'center' }}>Traxn Date</div>
-                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0' }}>Dues/Payment Details</div>
-                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Dues Amt</div>
-                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Paid Amt</div>
-                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Balance</div>
-                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Action</div>
+                                            <div style={{ padding: 10, borderLeft: '1px solid var(--border-primary)' }}>Dues/Payment Details</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>Dues Amt</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>Paid Amt</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>Status</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>Balance</div>
+                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>Action</div>
                                         </div>
 
-                                        {(passbook?.ledger?.map((monthGroup: any) => {
-                                            const entries = monthGroup.entries;
-                                            return { ...monthGroup, entries };
-                                        }).filter((mg: any) => mg.entries.length > 0) || []).map((monthGroup: any, idx: number) => (
+                                        {(passbook?.ledger?.filter((mg: any) => mg.entries.length > 0) || []).map((monthGroup: any, idx: number) => (
                                             <div key={idx}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                                    <div style={{ padding: '8px 10px', fontWeight: 700, color: '#1e40af', textAlign: 'center' }}>{monthGroup.month_name}</div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', color: '#22c55e', fontSize: '0.7rem' }}>
-                                                        (Opening Balance : <span style={{ color: '#22c55e' }}>Rs {monthGroup.opening_balance} Advance</span> )
+                                                {/* Month Header */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 80px 120px 70px', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-primary)' }}>
+                                                    <div style={{ padding: '8px 10px', fontWeight: 700, color: '#3b82f6', textAlign: 'center' }}>{monthGroup.month_name}</div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid var(--border-primary)', color: monthGroup.opening_balance > 0 ? '#ef4444' : '#22c55e', fontSize: '0.65rem' }}>
+                                                        (Opening: Rs {Math.abs(monthGroup.opening_balance).toFixed(2)} {monthGroup.opening_balance > 0 ? 'Due' : 'Adv'})
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
                                                 </div>
-                                                {monthGroup.entries.map((item: any, i: number) => (
-                                                    <div key={i} style={{
-                                                        display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px',
-                                                        borderBottom: '1px solid #e2e8f0',
-                                                        background: item.type === 'due' ? '#fef2f250' : '#f0fdf450',
-                                                    }}>
-                                                        <div style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>
-                                                            {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                                        </div>
-                                                        <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}>
-                                                            <div style={{ fontWeight: 600 }}>{item.data.type || 'Payment'} added by Owner</div>
-                                                            <div style={{ fontSize: '0.65rem', color: '#64748b', fontStyle: 'italic', marginTop: 2 }}>
-                                                                Manual Remarks : {item.data.description || item.data.notes || ''}
+                                                {/* Entries */}
+                                                {monthGroup.entries.map((item: any, i: number) => {
+                                                    const isDue = item.type === 'due';
+                                                    const dueStatus = isDue ? item.data?.status : null;
+                                                    const statusColor = dueStatus === 'paid' ? '#22c55e' : dueStatus === 'partially_paid' ? '#f59e0b' : isDue ? '#ef4444' : '#22c55e';
+                                                    const statusLabel = isDue
+                                                        ? (dueStatus === 'paid' ? 'Paid' : dueStatus === 'partially_paid' ? 'Partial' : 'Unpaid')
+                                                        : 'Received';
+                                                    return (
+                                                        <div key={i} style={{
+                                                            display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 80px 120px 70px',
+                                                            borderBottom: '1px solid var(--border-primary)',
+                                                            background: isDue ? (dueStatus === 'paid' ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)') : 'rgba(34, 197, 94, 0.05)',
+                                                        }}>
+                                                            <div style={{ padding: '8px 10px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                                                {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                            </div>
+                                                            <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}>
+                                                                <div style={{ fontWeight: 600 }}>
+                                                                    {isDue ? `${item.data.type || 'Due'} added by Owner` : `${item.data.type || 'Payment'} received via ${item.data.payment_mode || 'Cash'}`}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 2 }}>
+                                                                    {item.data.description || item.data.notes || ''}
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid var(--border-primary)', background: isDue ? 'rgba(239, 68, 68, 0.1)' : 'transparent', color: isDue ? '#ef4444' : 'inherit', fontWeight: 600 }}>
+                                                                {isDue ? Number(item.amount).toFixed(2) : ''}
+                                                            </div>
+                                                            <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid var(--border-primary)', background: !isDue ? 'rgba(34, 197, 94, 0.1)' : 'transparent', color: !isDue ? '#22c55e' : 'inherit', fontWeight: 600 }}>
+                                                                {!isDue ? Number(item.amount).toFixed(2) : ''}
+                                                            </div>
+                                                            <div style={{ padding: '8px 6px', textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>
+                                                                <span style={{ padding: '2px 6px', borderRadius: 10, fontSize: '0.6rem', fontWeight: 600, background: `${statusColor}15`, color: statusColor, border: `1px solid ${statusColor}30` }}>
+                                                                    {statusLabel}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid var(--border-primary)' }}>
+                                                                <span style={{ color: item.running_balance > 0 ? '#ef4444' : '#22c55e', fontWeight: 600 }}>
+                                                                    {Math.abs(item.running_balance).toFixed(2)} {item.running_balance > 0 ? 'Dues' : 'Adv'}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid var(--border-primary)', display: 'flex', gap: 4, justifyContent: 'center', alignItems: 'center' }}>
+                                                                {isDue ? (
+                                                                    <button title="Delete Due" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}><Trash size={14} /></button>
+                                                                ) : (
+                                                                    <button title="Print Receipt" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}><FileText size={14} /></button>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', background: item.type === 'due' ? '#fee2e2' : 'transparent', color: item.type === 'due' ? '#991b1b' : 'inherit' }}>
-                                                            {item.type === 'due' ? item.amount : ''}
-                                                        </div>
-                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', background: item.type === 'payment' ? '#dcfce7' : 'transparent', color: item.type === 'payment' ? '#166534' : 'inherit' }}>
-                                                            {item.type === 'payment' ? item.amount : ''}
-                                                        </div>
-                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>
-                                                            <span style={{ color: item.running_balance > 0 ? '#ef4444' : '#22c55e' }}>
-                                                                {Math.abs(item.running_balance)} {item.running_balance > 0 ? 'Dues' : 'Adv'}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ padding: '8px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
-                                                            {item.type === 'due' ? (
-                                                                <button title="Delete Due" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-red-500 hover:bg-red-50 rounded"><Trash size={14} /></button>
-                                                            ) : (
-                                                                <button title="Print Receipt" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-blue-500 hover:bg-blue-50 rounded"><FileText size={14} /></button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                                 {/* Month Total */}
                                                 <div style={{
-                                                    display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 120px 80px',
-                                                    borderBottom: '1px solid #e2e8f0', background: '#f8fafc',
+                                                    display: 'grid', gridTemplateColumns: '100px 1fr 100px 100px 80px 120px 70px',
+                                                    borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-primary)',
                                                 }}>
                                                     <div style={{ padding: '8px 10px' }}></div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid var(--border-primary)' }}>
                                                         {monthGroup.month_name} Total
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
-                                                        {monthGroup.month_total_dues}
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid var(--border-primary)', color: '#ef4444' }}>
+                                                        {Number(monthGroup.month_total_dues).toFixed(2)}
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid #e2e8f0' }}>
-                                                        {monthGroup.month_total_paid}
+                                                    <div style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, borderLeft: '1px solid var(--border-primary)', color: '#22c55e' }}>
+                                                        {Number(monthGroup.month_total_paid).toFixed(2)}
                                                     </div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
-                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid #e2e8f0' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
+                                                    <div style={{ padding: '8px 10px', borderLeft: '1px solid var(--border-primary)' }}></div>
                                                 </div>
                                             </div>
                                         ))}
+                                        {(!passbook?.ledger || passbook.ledger.every((mg: any) => mg.entries.length === 0)) && (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No transactions found.</div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div style={{ border: '1px solid #e2e8f0', fontSize: '0.75rem', borderRadius: 8, overflow: 'hidden' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 100px 100px 80px', background: '#f1f5f9', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>
-                                            <div style={{ padding: 10, textAlign: 'center' }}>Date</div>
-                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>Amount</div>
-                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0' }}>Category / Details</div>
-                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>Due Date</div>
-                                            <div style={{ padding: 10, borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>Added By</div>
-                                            <div style={{ padding: 10, textAlign: 'center', borderLeft: '1px solid #e2e8f0' }}>Action</div>
-                                        </div>
+                                </div>
+                            )}
 
-                                        {(passbook?.ledger?.flatMap((mg: any) => mg.entries) || []).filter((item: any) => {
-                                            if (passbookFilter === 'dues') return item.type === 'due';
-                                            if (passbookFilter === 'collections') return item.type === 'payment';
-                                            if (passbookFilter === 'deposit') return item.data.type?.toLowerCase().includes('deposit');
-                                            if (passbookFilter === 'advance') return item.running_balance < 0 || (item.type === 'payment' && item.amount > 0 && item.data?.notes?.toLowerCase().includes('advance'));
-                                            return true;
-                                        }).map((item: any, i: number) => (
-                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr 100px 100px 80px', borderBottom: '1px solid #e2e8f0', background: '#fff', alignItems: 'center' }}>
-                                                <div style={{ padding: '12px 10px', textAlign: 'center', color: '#64748b' }}>
-                                                    {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                </div>
-                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 600, color: item.type === 'due' ? '#ef4444' : '#22c55e' }}>
-                                                    Rs {item.amount}
-                                                </div>
-                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0' }}>
-                                                    <div style={{ fontWeight: 600 }}>{item.data.type || (item.type === 'due' ? 'Custom Due' : 'Payment')}</div>
-                                                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: 2 }}>{item.data.description || item.data.notes || ''}</div>
-                                                </div>
-                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                                    -
-                                                </div>
-                                                <div style={{ padding: '12px 10px', borderLeft: '1px solid #e2e8f0', textAlign: 'center' }}>
-                                                    Admin
-                                                </div>
-                                                <div style={{ padding: '12px 10px', textAlign: 'center', borderLeft: '1px solid #e2e8f0', display: 'flex', gap: 6, justifyContent: 'center' }}>
-                                                    {item.type === 'due' ? (
-                                                        <button title="Delete" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}><Trash size={14} /></button>
-                                                    ) : (
-                                                        <button title="Print Receipt" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}><FileText size={14} /></button>
-                                                    )}
+                            {passbookFilter === 'dues' && (
+                                <div style={{ background: 'var(--bg-card)', borderRadius: 8, padding: 24, border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Total Dues</h3>
+                                    <div style={{ border: '1px solid var(--border-primary)', borderRadius: 8, overflow: 'hidden', fontSize: '0.8rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 150px 150px 150px 80px', background: 'var(--bg-root)', fontWeight: 600, borderBottom: '1px solid var(--border-primary)' }}>
+                                            <div style={{ padding: 12 }}>Amount</div>
+                                            <div style={{ padding: 12 }}>Category</div>
+                                            <div style={{ padding: 12 }}>Due Date</div>
+                                            <div style={{ padding: 12 }}>Added By</div>
+                                            <div style={{ padding: 12, textAlign: 'center' }}>Action</div>
+                                        </div>
+                                        {passbook?.ledger?.flatMap((mg: any) => mg.entries).filter((e: any) => e.type === 'due').map((due: any, i: number) => (
+                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 1fr) 150px 150px 150px 80px', borderBottom: '1px solid var(--border-primary)', alignItems: 'center', background: 'var(--bg-primary)' }}>
+                                                <div style={{ padding: 12, color: '#ef4444', fontWeight: 600 }}>Rs {Number(due.amount).toFixed(2)}</div>
+                                                <div style={{ padding: 12 }}>{due.data?.type || 'Rent'}</div>
+                                                <div style={{ padding: 12 }}>{new Date(due.date).toLocaleDateString('en-GB')}</div>
+                                                <div style={{ padding: 12 }}>Owner</div>
+                                                <div style={{ padding: 12, textAlign: 'center' }}>
+                                                    <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Trash size={16} /></button>
                                                 </div>
                                             </div>
                                         ))}
-                                        {(passbook?.ledger?.flatMap((mg: any) => mg.entries) || []).filter((item: any) => {
-                                            if (passbookFilter === 'dues') return item.type === 'due';
-                                            if (passbookFilter === 'collections') return item.type === 'payment';
-                                            if (passbookFilter === 'deposit') return item.data.type?.toLowerCase().includes('deposit');
-                                            if (passbookFilter === 'advance') return item.running_balance < 0 || (item.type === 'payment' && item.amount > 0 && item.data?.notes?.toLowerCase().includes('advance'));
-                                            return true;
-                                        }).length === 0 && (
-                                                <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>No transactions found for this filter.</div>
-                                            )}
+                                        {passbook?.ledger?.flatMap((mg: any) => mg.entries).filter((e: any) => e.type === 'due').length === 0 && (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No dues found.</div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
+
+                            {passbookFilter === 'collections' && (
+                                <div style={{ background: 'var(--bg-card)', borderRadius: 8, padding: 24, border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Total Collection</h3>
+                                    <div style={{ border: '1px solid var(--border-primary)', borderRadius: 8, overflow: 'hidden', fontSize: '0.8rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '120px 150px minmax(120px, 1fr) 120px 100px 150px 150px 80px', background: 'var(--bg-root)', fontWeight: 600, borderBottom: '1px solid var(--border-primary)' }}>
+                                            <div style={{ padding: 12 }}>Date</div>
+                                            <div style={{ padding: 12 }}>Category</div>
+                                            <div style={{ padding: 12 }}>Amount</div>
+                                            <div style={{ padding: 12 }}>Payment Mode</div>
+                                            <div style={{ padding: 12 }}>Room</div>
+                                            <div style={{ padding: 12 }}>Description</div>
+                                            <div style={{ padding: 12 }}>Received By</div>
+                                            <div style={{ padding: 12, textAlign: 'center' }}>Action</div>
+                                        </div>
+                                        {passbook?.ledger?.flatMap((mg: any) => mg.entries).filter((e: any) => e.type === 'payment').map((payment: any, i: number) => (
+                                            <div key={i} style={{ display: 'grid', gridTemplateColumns: '120px 150px minmax(120px, 1fr) 120px 100px 150px 150px 80px', borderBottom: '1px solid var(--border-primary)', alignItems: 'center', background: 'var(--bg-primary)' }}>
+                                                <div style={{ padding: 12 }}>{new Date(payment.date).toLocaleDateString('en-GB')}</div>
+                                                <div style={{ padding: 12 }}>{payment.data?.type || 'Rent Payment'}</div>
+                                                <div style={{ padding: 12, color: '#22c55e', fontWeight: 600 }}>Rs {Number(payment.amount).toFixed(2)}</div>
+                                                <div style={{ padding: 12 }}>{payment.data?.payment_mode || 'Cash'}</div>
+                                                <div style={{ padding: 12 }}>{tenant.room_number || '-'}</div>
+                                                <div style={{ padding: 12, fontSize: '0.7rem', color: 'var(--text-muted)' }}>{payment.data?.description || payment.data?.notes || '-'}</div>
+                                                <div style={{ padding: 12 }}>Owner</div>
+                                                <div style={{ padding: 12, textAlign: 'center', display: 'flex', gap: 6, justifyContent: 'center' }}>
+                                                    <button style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }}><FileText size={16} /></button>
+                                                    <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Trash size={16} /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {passbook?.ledger?.flatMap((mg: any) => mg.entries).filter((e: any) => e.type === 'payment').length === 0 && (
+                                            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No collections found.</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {['deposit', 'advance', 'discount'].includes(passbookFilter) && (
+                                <div style={{ background: 'var(--bg-card)', borderRadius: 8, padding: 24, border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16, textTransform: 'capitalize' }}>
+                                        {passbookFilter === 'deposit' ? 'Security Deposit' : passbookFilter === 'advance' ? 'Advance' : 'Total Discount'}
+                                    </h3>
+                                    <div style={{ border: '1px solid var(--border-primary)', borderRadius: 8, overflow: 'hidden', fontSize: '0.8rem', background: 'var(--bg-primary)' }}>
+                                        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No {passbookFilter} records found.</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* === END OF PASSBOOK TABLES === */}
                         </div>
                     )}
 
@@ -782,7 +830,7 @@ export default function TenantProfilePage() {
                             background: 'var(--bg-primary)', borderLeft: '1px solid var(--border-primary)',
                             boxShadow: '-8px 0 24px rgba(0,0,0,0.1)', zIndex: 200, display: 'flex', flexDirection: 'column'
                         }}>
-                            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)' }}>
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Add Invoice</h3>
                                 <button onClick={() => setShowAddDues(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                                     <CloseIcon size={20} />
@@ -859,66 +907,68 @@ export default function TenantProfilePage() {
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
 
             {/* Checkout Modal */}
-            {showCheckoutModal && (
-                <div style={{
-                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
+            {
+                showCheckoutModal && (
                     <div style={{
-                        background: 'var(--bg-card)', width: '100%', maxWidth: 400,
-                        borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                         <div style={{
-                            padding: '16px 20px', borderBottom: '1px solid var(--border-primary)',
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            background: 'var(--bg-card)', width: '100%', maxWidth: 400,
+                            borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
                         }}>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Checkout Tenant</h3>
-                            <button onClick={() => setShowCheckoutModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                                <CloseIcon size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCheckoutSubmit}>
-                            <div style={{ padding: 20 }}>
-                                <div className="form-group" style={{ marginBottom: 16 }}>
-                                    <label>Reason for Checkout</label>
-                                    <select
-                                        className="form-control"
-                                        value={checkoutReason}
-                                        onChange={(e) => setCheckoutReason(e.target.value)}
-                                        required
-                                    >
-                                        <option value="">Select a reason</option>
-                                        <option value="move_out">Normal Move-out</option>
-                                        <option value="eviction">Eviction (Rules violated)</option>
-                                        <option value="dues_unpaid">Eviction (Unpaid Dues)</option>
-                                        <option value="job_change">Job / College Change</option>
-                                        <option value="left_without_notice">Left without Notice</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-
-                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-                                    This action will free up the assigned bed and move the tenant to the Old Tenants archieve. Final dues can be settled there.
-                                </p>
-                            </div>
-
                             <div style={{
-                                padding: '16px 20px', borderTop: '1px solid var(--border-primary)',
-                                display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--bg-secondary)'
+                                padding: '16px 20px', borderBottom: '1px solid var(--border-primary)',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                             }}>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowCheckoutModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" disabled={isCheckingOut || !checkoutReason}>
-                                    {isCheckingOut ? 'Checking out...' : 'Confirm Checkout'}
+                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Checkout Tenant</h3>
+                                <button onClick={() => setShowCheckoutModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                                    <CloseIcon size={20} />
                                 </button>
                             </div>
-                        </form>
+
+                            <form onSubmit={handleCheckoutSubmit}>
+                                <div style={{ padding: 20 }}>
+                                    <div className="form-group" style={{ marginBottom: 16 }}>
+                                        <label>Reason for Checkout</label>
+                                        <select
+                                            className="form-control"
+                                            value={checkoutReason}
+                                            onChange={(e) => setCheckoutReason(e.target.value)}
+                                            required
+                                        >
+                                            <option value="">Select a reason</option>
+                                            <option value="move_out">Normal Move-out</option>
+                                            <option value="eviction">Eviction (Rules violated)</option>
+                                            <option value="dues_unpaid">Eviction (Unpaid Dues)</option>
+                                            <option value="job_change">Job / College Change</option>
+                                            <option value="left_without_notice">Left without Notice</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
+                                        This action will free up the assigned bed and move the tenant to the Old Tenants archieve. Final dues can be settled there.
+                                    </p>
+                                </div>
+
+                                <div style={{
+                                    padding: '16px 20px', borderTop: '1px solid var(--border-primary)',
+                                    display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--bg-secondary)'
+                                }}>
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowCheckoutModal(false)}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary" disabled={isCheckingOut || !checkoutReason}>
+                                        {isCheckingOut ? 'Checking out...' : 'Confirm Checkout'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
