@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DoorOpen, Plus, User, Search, UserPlus, Share2, X } from 'lucide-react';
 import { roomApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
@@ -42,6 +43,7 @@ const bedStatusIcon = (s: string) => {
 };
 
 export default function RoomsPage() {
+    const navigate = useNavigate();
     const [floors, setFloors] = useState<Floor[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddRoom, setShowAddRoom] = useState(false);
@@ -147,43 +149,44 @@ export default function RoomsPage() {
             </div>
 
             {/* Scrollable Stat Cards */}
-            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', marginBottom: 24, paddingBottom: 8, scrollbarWidth: 'none' }}>
+            <div style={{ display: 'flex', gap: 0, overflowX: 'auto', marginBottom: 24, paddingBottom: 8, scrollbarWidth: 'thin' }}>
                 {[
-                    { title: 'Total Rooms', val: stats?.total_rooms },
-                    { title: 'Total Beds', val: stats?.total_beds },
-                    { title: 'Vacant Rooms', val: stats?.vacant_rooms },
-                    { title: 'Semi Vacant Rooms', val: stats?.semi_vacant_rooms },
-                    { title: 'Vacant Beds', val: stats?.vacant_beds },
-                    { title: 'Overbooked Rooms', val: stats?.overbooked_rooms },
-                    { title: 'Overbooked Beds', val: stats?.overbooked_beds },
-                    { title: 'Occupied Rooms', val: stats?.occupied_rooms },
-                    { title: 'Occupied Beds', val: stats?.occupied_beds },
-                    { title: 'New Bookings', val: stats?.new_bookings },
-                    { title: 'Under Notice Tenants', val: stats?.under_notice },
-                    { title: 'Unverified Rooms', val: stats?.unverified_rooms }
-                ].map(stat => (
-                    <div
-                        key={stat.title}
-                        onClick={() => setActiveFilter(stat.title)}
-                        style={{
-                            background: activeFilter === stat.title ? '#eff6ff' : '#fff',
-                            padding: '16px 20px',
-                            borderRadius: 12,
-                            minWidth: 140,
-                            border: `1px solid ${activeFilter === stat.title ? '#3b82f6' : '#e2e8f0'}`,
-                            boxShadow: activeFilter === stat.title ? '0 0 0 1px #3b82f6' : '0 1px 2px rgba(0,0,0,0.05)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 8,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            flexShrink: 0
-                        }}
-                    >
-                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: activeFilter === stat.title ? '#2563eb' : '#3b82f6' }}>{stat.val || 0}</div>
-                        <div style={{ color: activeFilter === stat.title ? '#1e40af' : '#64748b', fontSize: '0.85rem', fontWeight: 500 }}>{stat.title}</div>
-                    </div>
-                ))}
+                    { title: 'Total Rooms', val: stats?.total_rooms, color: '#3b82f6' },
+                    { title: 'Total Beds', val: stats?.total_beds, color: '#6366f1' },
+                    { title: 'Vacant Rooms', val: stats?.vacant_rooms, color: '#22c55e' },
+                    { title: 'Semi Vacant Rooms', val: stats?.semi_vacant_rooms, color: '#f59e0b' },
+                    { title: 'Vacant Beds', val: stats?.vacant_beds, color: '#22c55e' },
+                    { title: 'Overbooked Rooms', val: stats?.overbooked_rooms, color: '#ef4444' },
+                    { title: 'Overbooked Beds', val: stats?.overbooked_beds, color: '#ef4444' },
+                    { title: 'Occupied Rooms', val: stats?.occupied_rooms, color: '#3b82f6' },
+                    { title: 'Occupied Beds', val: stats?.occupied_beds, color: '#3b82f6' },
+                    { title: 'New Bookings', val: stats?.new_bookings, color: '#8b5cf6' },
+                    { title: 'Under Notice Tenants', val: stats?.under_notice, color: '#f59e0b' },
+                    { title: 'Unverified Rooms', val: stats?.unverified_rooms, color: '#64748b' }
+                ].map((stat, i, arr) => {
+                    const isActive = activeFilter === stat.title;
+                    return (
+                        <div
+                            key={stat.title}
+                            onClick={() => setActiveFilter(stat.title)}
+                            style={{
+                                minWidth: 140,
+                                padding: '16px 20px',
+                                border: '1px solid var(--border-primary)',
+                                borderRight: i < arr.length - 1 ? 'none' : '1px solid var(--border-primary)',
+                                borderRadius: i === 0 ? '10px 0 0 10px' : i === arr.length - 1 ? '0 10px 10px 0' : 0,
+                                background: isActive ? 'var(--bg-secondary)' : 'var(--bg-card)',
+                                cursor: 'pointer',
+                                transition: 'background 0.2s',
+                                flexShrink: 0,
+                            }}
+                            className="hover-card"
+                        >
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: stat.color, marginBottom: 2 }}>{stat.val || 0}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{stat.title}</div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Search */}
@@ -430,7 +433,9 @@ export default function RoomsPage() {
                                         <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{room.type}</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: 6 }}>
-                                                <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+                                                <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/tenants/add?room=${room.id}`); }}
+                                                >
                                                     <UserPlus size={13} /> Add
                                                 </button>
                                                 <button style={{

@@ -33,7 +33,7 @@ export default function HomePage() {
     const { setProperties } = usePropertyStore();
 
     useEffect(() => {
-        dashboardApi.overview()
+        dashboardApi.overview({ property_id: filterPropertyId })
             .then((res) => {
                 setData(res.data);
                 if (res.data.properties) {
@@ -41,7 +41,7 @@ export default function HomePage() {
                 }
             })
             .catch(() => {
-                setData({
+                setData(prev => prev ? { ...prev, todays_collection: 0, monthly_collection: 0, monthly_dues: 0, total_dues: 0, monthly_expenses: 0, monthly_profit: 0 } : {
                     todays_collection: 0, monthly_collection: 0,
                     monthly_dues: 0, total_dues: 0, monthly_expenses: 0, monthly_profit: 0,
                     total_tenants: 0, under_notice: 0, defaulters: 0,
@@ -50,7 +50,7 @@ export default function HomePage() {
                 });
             })
             .finally(() => setLoading(false));
-    }, [setProperties]);
+    }, [setProperties, filterPropertyId]);
 
     if (loading) {
         return <div className="page-loading"><div className="spinner"></div></div>;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, ArrowLeft, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw, X } from 'lucide-react';
 import { roomApi, tenantApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
 import { useNavigate } from 'react-router-dom';
@@ -31,7 +31,7 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
         setLoading(true);
         Promise.all([
             roomApi.get(selectedPropertyId, roomId),
-            tenantApi.list(selectedPropertyId, { room: roomId }),
+            tenantApi.list(selectedPropertyId, { room: roomId, is_booking: false }),
             tenantApi.list(selectedPropertyId, { room: roomId, is_booking: true })
         ]).then(([roomRes, tenantsRes, bookingsRes]) => {
             const data = roomRes.data;
@@ -301,7 +301,7 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
                                     </div>
                                     <div style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
                                         <table style={{ width: '100%', minWidth: 500, borderCollapse: 'collapse', textAlign: 'left' }}>
-                                            <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-primary)' }}>
+                                            <thead style={{ background: 'var(--bg-root)', borderBottom: '1px solid var(--border-primary)' }}>
                                                 <tr>
                                                     <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>NAME</th>
                                                     <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>UNIT / BED</th>
@@ -325,7 +325,7 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
                                                             ₹{tenant.rent ? tenant.rent.toLocaleString() : '0'}
                                                         </td>
                                                         <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                                            {tenant.move_in_date || 'N/A'}
+                                                            {tenant.move_in || 'N/A'}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -342,13 +342,13 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
                                 {/* Future Bookings Section */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                        <span style={{ background: '#f0fdf4', color: '#16a34a', padding: '4px 12px', borderRadius: 16, fontSize: '0.85rem', fontWeight: 600 }}>
+                                        <span style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', padding: '4px 12px', borderRadius: 16, fontSize: '0.85rem', fontWeight: 600 }}>
                                             {bookings.length} Bookings
                                         </span>
                                     </div>
                                     <div style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
                                         <table style={{ width: '100%', minWidth: 500, borderCollapse: 'collapse', textAlign: 'left' }}>
-                                            <thead style={{ background: '#f8fafc', borderBottom: '1px solid var(--border-primary)' }}>
+                                            <thead style={{ background: 'var(--bg-root)', borderBottom: '1px solid var(--border-primary)' }}>
                                                 <tr>
                                                     <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>NAME</th>
                                                     <th style={{ padding: '12px 16px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)' }}>UNIT / BED</th>
@@ -360,19 +360,19 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
                                                 {bookings.map(booking => (
                                                     <tr key={booking.id} style={{ borderBottom: '1px solid var(--border-primary)' }}>
                                                         <td style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                            <div style={{ width: 28, height: 28, borderRadius: 14, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706', fontWeight: 600, fontSize: '0.8rem' }}>
-                                                                B
+                                                            <div style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', fontWeight: 600, fontSize: '0.8rem' }}>
+                                                                {booking.name ? booking.name.charAt(0) : 'B'}
                                                             </div>
-                                                            <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Booking #{booking.id.slice(0, 5)}</span>
+                                                            <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{booking.name}</span>
                                                         </td>
                                                         <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                                                             {room.number}
                                                         </td>
                                                         <td style={{ padding: '12px 16px', fontSize: '0.9rem', fontWeight: 600, color: '#16a34a' }}>
-                                                            ₹0
+                                                            ₹{booking.deposit ? booking.deposit.toLocaleString() : '0'}
                                                         </td>
                                                         <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                                            {booking.expected_move_in || 'N/A'}
+                                                            {booking.move_in || 'N/A'}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -389,7 +389,7 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
 
                             {/* Sticky Footer */}
                             <div style={{ position: 'sticky', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)' }}>
-                                <button className="btn btn-primary" style={{ width: '100%', height: 44, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} onClick={() => navigate('/tenants/add')}>
+                                <button className="btn btn-primary" style={{ width: '100%', height: 44, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }} onClick={() => navigate(`/tenants/add?room=${roomId}`)}>
                                     Add Tenant
                                 </button>
                             </div>
@@ -430,7 +430,7 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        background: '#f8fafc',
+                                        background: 'var(--bg-primary)',
                                         gap: 8
                                     }}>
                                         <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>No agreement parties added yet</p>
@@ -450,15 +450,6 @@ export default function RoomProfileDrawer({ roomId, onClose }: RoomProfileDrawer
 
                 </div>
 
-                {/* Legacy Footer (Hidden on Details and Tenants Tabs to prevent duplicates) */}
-                {activeTab === 'settings' && (
-                    <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-primary)', background: 'var(--bg-card)', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                        <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-                        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                            {saving ? 'Saving...' : <><Save size={16} /> Save Changes</>}
-                        </button>
-                    </div>
-                )}
             </div>
         </div >
     );

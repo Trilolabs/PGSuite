@@ -161,8 +161,16 @@ export default function TenantsPage() {
                         <h3>No Tenants Found</h3>
                         <p>{selectedPropertyId ? 'Add your first tenant to get started' : 'Select a property first'}</p>
                         {selectedPropertyId && (
-                            <Link to="/tenants/add" className="btn btn-primary" style={{ marginTop: 16 }}>
-                                <Plus size={16} /> Add Tenant
+                            <Link to="/tenants/add" style={{
+                                marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 6,
+                                padding: '8px 20px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600,
+                                color: '#6366f1', border: '1.5px solid #6366f1', background: 'transparent',
+                                textDecoration: 'none', transition: 'all 0.2s',
+                            }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#6366f1'; e.currentTarget.style.color = '#fff'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6366f1'; }}
+                            >
+                                <Plus size={15} /> Add Tenant
                             </Link>
                         )}
                     </div>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://127.0.0.1:8001/api/v1';
+const API_BASE = 'http://127.0.0.1:8000/api/v1';
 
 const api = axios.create({
     baseURL: API_BASE,
@@ -129,7 +129,7 @@ export const duesPackageApi = {
 
 // ===================== Dashboard =====================
 export const dashboardApi = {
-    overview: () => api.get('/dashboard/dashboard/'),
+    overview: (params?: any) => api.get('/dashboard/dashboard/', { params }),
 };
 
 // ===================== Leads =====================
