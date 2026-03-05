@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DoorOpen, Plus, User, Search, UserPlus, Share2, X } from 'lucide-react';
 import { roomApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
@@ -42,6 +43,7 @@ const bedStatusIcon = (s: string) => {
 };
 
 export default function RoomsPage() {
+    const navigate = useNavigate();
     const [floors, setFloors] = useState<Floor[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddRoom, setShowAddRoom] = useState(false);
@@ -431,7 +433,9 @@ export default function RoomsPage() {
                                         <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{room.type}</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: 6 }}>
-                                                <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+                                                <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                                    onClick={(e) => { e.stopPropagation(); navigate(`/tenants/add?room=${room.id}`); }}
+                                                >
                                                     <UserPlus size={13} /> Add
                                                 </button>
                                                 <button style={{

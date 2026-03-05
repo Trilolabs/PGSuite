@@ -27,8 +27,26 @@ class TenantViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'move_in', 'rent', 'created_at']
 
     def get_queryset(self):
+        property_pk = self.kwargs['property_pk']
+
+        # Auto-convert bookings whose move-in date has arrived
+        converted = Tenant.objects.filter(
+            property_id=property_pk,
+            status='booking_pending',
+            move_in__lte=date.today()
+        )
+        if converted.exists():
+            converted.update(status='active')
+            # Update their beds: reserved → occupied
+            from pms.apps.properties.models import Bed
+            Bed.objects.filter(
+                tenant__property_id=property_pk,
+                tenant__status='active',
+                status='reserved'
+            ).update(status='occupied')
+
         qs = Tenant.objects.filter(
-            property_id=self.kwargs['property_pk'],
+            property_id=property_pk,
         ).select_related('room', 'property')
 
         is_booking = self.request.query_params.get('is_booking')

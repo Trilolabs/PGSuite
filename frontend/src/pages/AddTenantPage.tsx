@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { UserPlus, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { tenantApi, roomApi, duesPackageApi } from '../lib/api';
 import { usePropertyStore } from '../stores/propertyStore';
@@ -47,7 +47,9 @@ export default function AddTenantPage() {
     const { selectedPropertyId } = usePropertyStore();
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const isBooking = location.state?.isBooking;
+    const preselectedRoomId = searchParams.get('room') || '';
 
     const [form, setForm] = useState({
         name: '', phone: '', email: '', gender: 'male',
@@ -72,7 +74,14 @@ export default function AddTenantPage() {
         if (selectedPropertyId) {
             // Fetch Rooms for dropdown
             roomApi.list(selectedPropertyId)
-                .then(res => setRooms(res.data.results || res.data || []))
+                .then(res => {
+                    const fetchedRooms = res.data.results || res.data || [];
+                    setRooms(fetchedRooms);
+                    // Pre-fill room if coming from Rooms page with ?room=ID
+                    if (preselectedRoomId && fetchedRooms.some((r: Room) => r.id === preselectedRoomId)) {
+                        setForm(f => ({ ...f, room: preselectedRoomId }));
+                    }
+                })
                 .catch(() => { });
 
             // Fetch Dues Packages to auto-populate Security Deposit
@@ -260,9 +269,9 @@ export default function AddTenantPage() {
                                 <label className="form-label">Room *</label>
                                 <select className="form-select" value={form.room} onChange={set('room')}>
                                     <option value="">Select Room</option>
-                                    {rooms.map(r => (
+                                    {rooms.filter(r => r.beds?.some(b => b.status === 'vacant')).map(r => (
                                         <option key={r.id} value={r.id}>
-                                            {r.floor_name} → Room {r.number} ({r.type})
+                                            {r.floor_name} → Room {r.number} ({r.type}) — {r.beds?.filter(b => b.status === 'vacant').length} bed(s) vacant
                                         </option>
                                     ))}
                                 </select>
